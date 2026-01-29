@@ -17,13 +17,15 @@ RUN apk add --no-cache python3 make g++
 COPY package*.json ./
 
 # Install root dependencies only (faster layer caching)
-RUN npm ci --only=production && npm ci --only=development
+# Set HUSKY=0 to skip Husky installation (not needed in Docker)
+RUN HUSKY=0 npm ci --only=production && HUSKY=0 npm ci --only=development
 
 # Copy workspace packages
 COPY repos ./repos
 
 # Install workspace dependencies using npm ci for reproducible builds
-RUN npm ci --workspaces
+# Set HUSKY=0 to skip Husky installation (not needed in Docker)
+RUN HUSKY=0 npm ci --workspaces
 
 # Stage 2: Runtime stage
 FROM node:22-alpine
