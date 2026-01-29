@@ -1,0 +1,77 @@
+{
+  "name": "necromundabot",
+  "version": "0.4.0",
+  "description": "NecromundaBot - Unified monorepo containing core bot, utilities, commands, and dashboard",
+  "private": true,
+  "main": "src/index.js",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "workspaces": [
+    "repos/necrobot-utils",
+    "repos/necrobot-core",
+    "repos/necrobot-commands",
+    "repos/necrobot-dashboard"
+  ],
+  "scripts": {
+    "test": "npm test --workspaces",
+    "test:integration": "npm test --workspaces",
+    "test:watch": "npm run test:watch --workspaces",
+    "test:coverage": "npm run test:coverage --workspaces",
+    "test:quick": "npm test --workspaces -- --bail",
+    "lint": "npm run lint --workspaces",
+    "lint:fix": "npm run lint:fix --workspaces",
+    "format": "npm run format --workspaces",
+    "format:check": "npm run format:check --workspaces",
+    "build": "npm run build --workspaces 2>/dev/null || true",
+    "validate:node": "node scripts/validate-node-version.js",
+    "validate:workspaces": "node scripts/validate-workspaces.js",
+    "workspaces:list": "npm list --workspaces --depth=0",
+    "workspaces:status": "node scripts/workspaces-status.js",
+    "workspaces:validate": "node scripts/validate-workspaces.js",
+    "prepare": "husky install"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "necromunda",
+    "monorepo",
+    "workspace"
+  ],
+  "author": "NecromundaBot Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
+    "eslint": "^8.56.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-next": "^14.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "husky": "^9.1.7",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.1.1"
+  },
+  "lint-staged": {
+    "*.{js,jsx}": [
+      "prettier --write"
+    ],
+    "*.json": [
+      "prettier --write"
+    ],
+    "*.{md,markdown}": [
+      "prettier --write"
+    ],
+    "*.{css,scss}": [
+      "prettier --write"
+    ]
+  }
+}

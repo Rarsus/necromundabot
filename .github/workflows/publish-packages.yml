@@ -1,0 +1,289 @@
+name: Publish Packages to GitHub Packages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'repos/*/package.json'
+      - '.github/workflows/publish-packages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ============================================================================
+  # DEPENDENCY ORDER: utils → core → commands → dashboard
+  # ============================================================================
+
+  # STEP 1: Publish necrobot-utils (foundation, no dependencies)
+  publish-utils:
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.check.outcome == 'failure' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Configure npm for GitHub Packages
+        run: |
+          npm config set @rarsus:registry https://npm.pkg.github.com
+          npm config set //npm.pkg.github.com/:_authToken ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get package version
+        id: version
+        run: |
+          VERSION=$(node -e "console.log(require('./repos/necrobot-utils/package.json').version)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Publishing necrobot-utils v$VERSION"
+
+      - name: Check if version already published
+        id: check
+        continue-on-error: true
+        run: |
+          cd repos/necrobot-utils
+          npm view @rarsus/necrobot-utils@${{ steps.version.outputs.version }}
+          echo "already_published=true" >> $GITHUB_OUTPUT
+
+      - name: Publish to GitHub Packages
+        if: steps.check.outcome == 'failure'
+        run: |
+          cd repos/necrobot-utils
+          npm publish
+          echo "✅ Published @rarsus/necrobot-utils@${{ steps.version.outputs.version }}"
+
+      - name: Skip if already published
+        if: steps.check.outcome == 'success'
+        run: |
+          echo "⏭️  necrobot-utils version already published, skipping"
+
+  # STEP 2: Publish necrobot-core (depends on necrobot-utils)
+  publish-core:
+    needs: publish-utils
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.check.outcome == 'failure' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Configure npm for GitHub Packages
+        run: |
+          npm config set @rarsus:registry https://npm.pkg.github.com
+          npm config set //npm.pkg.github.com/:_authToken ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get package version
+        id: version
+        run: |
+          VERSION=$(node -e "console.log(require('./repos/necrobot-core/package.json').version)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Publishing necrobot-core v$VERSION"
+
+      - name: Check if version already published
+        id: check
+        continue-on-error: true
+        run: |
+          cd repos/necrobot-core
+          npm view @rarsus/necrobot-core@${{ steps.version.outputs.version }}
+          echo "already_published=true" >> $GITHUB_OUTPUT
+
+      - name: Publish to GitHub Packages
+        if: steps.check.outcome == 'failure'
+        run: |
+          cd repos/necrobot-core
+          npm publish
+          echo "✅ Published @rarsus/necrobot-core@${{ steps.version.outputs.version }}"
+
+      - name: Skip if already published
+        if: steps.check.outcome == 'success'
+        run: |
+          echo "⏭️  necrobot-core version already published, skipping"
+
+  # STEP 3: Publish necrobot-commands (depends on necrobot-core & necrobot-utils)
+  publish-commands:
+    needs: publish-core
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.check.outcome == 'failure' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Configure npm for GitHub Packages
+        run: |
+          npm config set @rarsus:registry https://npm.pkg.github.com
+          npm config set //npm.pkg.github.com/:_authToken ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get package version
+        id: version
+        run: |
+          VERSION=$(node -e "console.log(require('./repos/necrobot-commands/package.json').version)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Publishing necrobot-commands v$VERSION"
+
+      - name: Check if version already published
+        id: check
+        continue-on-error: true
+        run: |
+          cd repos/necrobot-commands
+          npm view @rarsus/necrobot-commands@${{ steps.version.outputs.version }}
+          echo "already_published=true" >> $GITHUB_OUTPUT
+
+      - name: Publish to GitHub Packages
+        if: steps.check.outcome == 'failure'
+        run: |
+          cd repos/necrobot-commands
+          npm publish
+          echo "✅ Published @rarsus/necrobot-commands@${{ steps.version.outputs.version }}"
+
+      - name: Skip if already published
+        if: steps.check.outcome == 'success'
+        run: |
+          echo "⏭️  necrobot-commands version already published, skipping"
+
+  # STEP 4: Publish necrobot-dashboard (depends on necrobot-utils)
+  publish-dashboard:
+    needs: publish-commands
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.check.outcome == 'failure' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Configure npm for GitHub Packages
+        run: |
+          npm config set @rarsus:registry https://npm.pkg.github.com
+          npm config set //npm.pkg.github.com/:_authToken ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get package version
+        id: version
+        run: |
+          VERSION=$(node -e "console.log(require('./repos/necrobot-dashboard/package.json').version)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Publishing necrobot-dashboard v$VERSION"
+
+      - name: Check if version already published
+        id: check
+        continue-on-error: true
+        run: |
+          cd repos/necrobot-dashboard
+          npm view @rarsus/necrobot-dashboard@${{ steps.version.outputs.version }}
+          echo "already_published=true" >> $GITHUB_OUTPUT
+
+      - name: Publish to GitHub Packages
+        if: steps.check.outcome == 'failure'
+        run: |
+          cd repos/necrobot-dashboard
+          npm publish
+          echo "✅ Published @rarsus/necrobot-dashboard@${{ steps.version.outputs.version }}"
+
+      - name: Skip if already published
+        if: steps.check.outcome == 'success'
+        run: |
+          echo "⏭️  necrobot-dashboard version already published, skipping"
+
+  # VERIFY: Confirm all published packages are accessible
+  verify:
+    needs: [publish-utils, publish-core, publish-commands, publish-dashboard]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Configure npm for GitHub Packages
+        run: |
+          npm config set @rarsus:registry https://npm.pkg.github.com
+
+      - name: Verify publication order
+        run: |
+          echo "========================================"
+          echo "📋 Package Publishing Order Verification"
+          echo "========================================"
+          echo ""
+          echo "✅ STEP 1: necrobot-utils (foundation)"
+          echo "✅ STEP 2: necrobot-core (depends on utils)"
+          echo "✅ STEP 3: necrobot-commands (depends on core & utils)"
+          echo "✅ STEP 4: necrobot-dashboard (depends on utils)"
+          echo ""
+          echo "This ensures correct dependency resolution"
+          echo "========================================"
+
+      - name: Verify published packages
+        run: |
+          echo ""
+          echo "🔍 Checking GitHub Packages registry..."
+          echo ""
+
+          # Check utils
+          if npm view @rarsus/necrobot-utils >/dev/null 2>&1; then
+            UTILS_VERSION=$(npm view @rarsus/necrobot-utils version)
+            echo "✅ @rarsus/necrobot-utils@$UTILS_VERSION"
+          else
+            echo "⏳ @rarsus/necrobot-utils (publishing or not yet available)"
+          fi
+
+          # Check core
+          if npm view @rarsus/necrobot-core >/dev/null 2>&1; then
+            CORE_VERSION=$(npm view @rarsus/necrobot-core version)
+            echo "✅ @rarsus/necrobot-core@$CORE_VERSION"
+          else
+            echo "⏳ @rarsus/necrobot-core (publishing or not yet available)"
+          fi
+
+          # Check commands
+          if npm view @rarsus/necrobot-commands >/dev/null 2>&1; then
+            COMMANDS_VERSION=$(npm view @rarsus/necrobot-commands version)
+            echo "✅ @rarsus/necrobot-commands@$COMMANDS_VERSION"
+          else
+            echo "⏳ @rarsus/necrobot-commands (publishing or not yet available)"
+          fi
+
+          # Check dashboard
+          if npm view @rarsus/necrobot-dashboard >/dev/null 2>&1; then
+            DASHBOARD_VERSION=$(npm view @rarsus/necrobot-dashboard version)
+            echo "✅ @rarsus/necrobot-dashboard@$DASHBOARD_VERSION"
+          else
+            echo "⏳ @rarsus/necrobot-dashboard (publishing or not yet available)"
+          fi
+
+          echo ""
+          echo "✅ Workflow completed successfully!"

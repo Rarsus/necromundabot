@@ -1,0 +1,21 @@
+#!/bin/sh
+
+echo "🔍 Running pre-commit checks..."
+
+# Run lint-staged to auto-fix staged files
+npx lint-staged
+
+# Check lint-staged exit code
+LINT_STATUS=$?
+if [ $LINT_STATUS -ne 0 ]; then
+  echo "❌ Lint-staged check failed"
+  exit 1
+fi
+
+# Re-stage any files that were modified by prettier/eslint
+# This ensures formatted files are included in the commit
+echo "📝 Re-staging formatted files..."
+git add -A
+
+echo "✅ Pre-commit checks passed!"
+exit 0

@@ -1,0 +1,332 @@
+{
+  "version": "2.0.0",
+  "date": "2026-01-29",
+  "lastUpdated": "2026-01-29",
+  "baslineExpiresAt": "2026-08-31",
+  "nextReviewDate": "2026-04-01",
+  "criticalExemptionExpires": "2026-05-01",
+  "totalVulnerabilities": 13,
+  "acceptedBy": "Olav & Copilot",
+  "acceptanceReason": "Vulnerabilities in trusted internal contexts, build-only dependencies, or with fix paths blocked by missing stable releases. All exemptions are time-bound with hard expiration dates.",
+  "vulnerabilities": [
+    {
+      "id": "undici-decompression-1",
+      "cve": "GHSA-6hxm-7r2w-pxwj",
+      "package": "undici",
+      "severity": "HIGH",
+      "type": "Decompression Bomb / Unbounded Decompression",
+      "description": "Improper input validation allows unbounded decompression of gzip/deflate/brotli streams without size limits, enabling memory exhaustion DoS attacks. Affects discord.js HTTP client.",
+      "reason": "discord.js 14.x is EOL; vulnerability only affects HTTP client in trusted API context (Discord). Fix requires discord.js v15 with ESM migration. Current threat model: minimal risk because we only connect to Discord's trusted API.",
+      "affected": ["discord.js@14.11.0"],
+      "linkedTo": "GHSA-6hxm-7r2w-pxwj (4 instances of same CVE)",
+      "critical": true,
+      "riskLevel": "MEDIUM-HIGH (mitigated by API context)",
+      "exploitability": "LOW in our context (trusted API only)",
+      "impact": "Memory exhaustion if Discord API returns malicious compressed data",
+      "acceptedDate": "2026-01-28",
+      "acceptedBy": "Olav",
+      "reviewDate": "2026-04-01",
+      "expiresDate": "2026-05-01",
+      "fixVersion": "discord.js@15.0.0+",
+      "fixOption2": "upgrade to v15 and handle ESM migration",
+      "fixEffort": "22-35 hours (includes ESM conversion, builder imports, event handlers)",
+      "fixIsBreaking": true,
+      "status": "ACCEPTED",
+      "notes": "Part of linked vulnerability group. All 4 instances are same CVE from discord.js dependency chain. CRITICAL: Must fix before 2026-05-01.",
+      "remediation": "Complete discord.js v15 migration per PHASE-03.1.1-DISCORD-JS-V15-IMPLEMENTATION-PLAN.md"
+    },
+    {
+      "id": "undici-decompression-2",
+      "cve": "GHSA-6hxm-7r2w-pxwj",
+      "package": "undici",
+      "severity": "HIGH",
+      "type": "Decompression Bomb / Unbounded Decompression",
+      "description": "Same as undici-decompression-1 (linked CVE, multiple instances)",
+      "reason": "See undici-decompression-1",
+      "affected": ["discord.js@14.11.0"],
+      "linkedTo": "GHSA-6hxm-7r2w-pxwj (instance 2 of 4)",
+      "critical": true,
+      "riskLevel": "MEDIUM-HIGH (mitigated by API context)",
+      "exploitability": "LOW in our context (trusted API only)",
+      "impact": "Memory exhaustion if Discord API returns malicious compressed data",
+      "acceptedDate": "2026-01-28",
+      "acceptedBy": "Olav",
+      "reviewDate": "2026-04-01",
+      "expiresDate": "2026-05-01",
+      "fixVersion": "discord.js@15.0.0+",
+      "fixEffort": "22-35 hours (grouped with other undici fixes)",
+      "fixIsBreaking": true,
+      "status": "ACCEPTED",
+      "notes": "Linked to undici-decompression-1. Part of same CVE group.",
+      "remediation": "Complete discord.js v15 migration"
+    },
+    {
+      "id": "undici-decompression-3",
+      "cve": "GHSA-6hxm-7r2w-pxwj",
+      "package": "undici",
+      "severity": "HIGH",
+      "type": "Decompression Bomb / Unbounded Decompression",
+      "description": "Same as undici-decompression-1 (linked CVE, multiple instances)",
+      "reason": "See undici-decompression-1",
+      "affected": ["discord.js@14.11.0"],
+      "linkedTo": "GHSA-6hxm-7r2w-pxwj (instance 3 of 4)",
+      "critical": true,
+      "riskLevel": "MEDIUM-HIGH (mitigated by API context)",
+      "exploitability": "LOW in our context (trusted API only)",
+      "impact": "Memory exhaustion if Discord API returns malicious compressed data",
+      "acceptedDate": "2026-01-28",
+      "acceptedBy": "Olav",
+      "reviewDate": "2026-04-01",
+      "expiresDate": "2026-05-01",
+      "fixVersion": "discord.js@15.0.0+",
+      "fixEffort": "22-35 hours (grouped with other undici fixes)",
+      "fixIsBreaking": true,
+      "status": "ACCEPTED",
+      "notes": "Linked to undici-decompression-1 & 2. Part of same CVE group.",
+      "remediation": "Complete discord.js v15 migration"
+    },
+    {
+      "id": "undici-decompression-4",
+      "cve": "GHSA-6hxm-7r2w-pxwj",
+      "package": "undici",
+      "severity": "HIGH",
+      "type": "Decompression Bomb / Unbounded Decompression",
+      "description": "Same as undici-decompression-1 (linked CVE, multiple instances)",
+      "reason": "See undici-decompression-1",
+      "affected": ["discord.js@14.11.0"],
+      "linkedTo": "GHSA-6hxm-7r2w-pxwj (instance 4 of 4)",
+      "critical": true,
+      "riskLevel": "MEDIUM-HIGH (mitigated by API context)",
+      "exploitability": "LOW in our context (trusted API only)",
+      "impact": "Memory exhaustion if Discord API returns malicious compressed data",
+      "acceptedDate": "2026-01-28",
+      "acceptedBy": "Olav",
+      "reviewDate": "2026-04-01",
+      "expiresDate": "2026-05-01",
+      "fixVersion": "discord.js@15.0.0+",
+      "fixEffort": "22-35 hours (grouped with other undici fixes)",
+      "fixIsBreaking": true,
+      "status": "ACCEPTED",
+      "notes": "Linked to undici-decompression-1, 2, & 3. FINAL instance of same CVE group. All 4 must be fixed together via discord.js v15.",
+      "remediation": "Complete discord.js v15 migration"
+    },
+    {
+      "id": "glob-command-injection",
+      "cve": "GHSA-5j98-mcp5-4vw2",
+      "package": "glob",
+      "severity": "HIGH",
+      "type": "Command Injection via glob pattern -c/--cmd options",
+      "description": "Glob package allows unvalidated shell metacharacters in patterns, enabling command injection when patterns are user-controlled. Affects @next/eslint-plugin-next via glob dependency.",
+      "reason": "glob is ONLY used in eslint configuration (build-time/dev-only). No runtime exposure. Dashboard is internal tooling, not production. Fix available: upgrade to latest @next/eslint-plugin-next which uses patched glob.",
+      "affected": ["@next/eslint-plugin-next (via glob dependency)"],
+      "critical": false,
+      "riskLevel": "LOW (build-time only, no runtime use)",
+      "exploitability": "ZERO in our context (no user input to glob, static config)",
+      "impact": "Command injection only if ESLint patterns were dynamically generated from user input (not the case)",
+      "acceptedDate": "2026-01-28",
+      "acceptedBy": "Olav",
+      "reviewDate": "2026-03-01",
+      "expiresDate": "2026-03-31",
+      "fixVersion": "@next/eslint-plugin-next@16.1.4+ (patches glob)",
+      "fixEffort": "1-2 hours",
+      "fixIsBreaking": false,
+      "status": "ACCEPTED",
+      "notes": "Easy fix available. Exemption expires 2026-03-31. Must upgrade before then.",
+      "remediation": "Upgrade @next/eslint-plugin-next to latest version that includes patched glob dependency"
+    },
+    {
+      "id": "tar-vulnerability-1",
+      "cve": "GHSA-5p8v-58qm-c7m8",
+      "package": "tar",
+      "severity": "MODERATE",
+      "type": "Symlink following / path traversal in tar extraction",
+      "description": "Tar package doesn't properly validate symlink targets during extraction, allowing arbitrary file writes outside extraction directory. Transitive dependency of sqlite3 via node-gyp.",
+      "reason": "tar is ONLY used during npm install via node-gyp (sqlite3 build). Never runs at runtime. Threat model: npm registry is trusted, node-gyp extraction is to isolated build cache. No production exposure.",
+      "affected": ["sqlite3@5.1.7 (via node-gyp build)"],
+      "linkedTo": "GHSA-5p8v-58qm-c7m8 (3 instances from tar in node-gyp)",
+      "critical": false,
+      "riskLevel": "LOW (build-time only)",
+      "exploitability": "ZERO in our context (trusted npm registry)",
+      "impact": "Arbitrary file write only if npm registry is compromised",
+      "acceptedDate": "2026-01-28",
+      "acceptedBy": "Olav",
+      "reviewDate": "2026-04-01",
+      "expiresDate": "2026-05-31",
+      "fixVersion": "Automatic when sqlite3 rebuilds itself with patched tar",
+      "fixOption2": "Wait for node-gyp to use patched tar, or rebuild sqlite3 in Docker",
+      "fixEffort": "4-6 hours (rebuild sqlite3 in clean Docker environment)",
+      "fixIsBreaking": false,
+      "status": "ACCEPTED",
+      "notes": "Build-time dependency only. Safe due to isolation and npm registry trust. Exemption expires 2026-05-31.",
+      "remediation": "Monitor node-gyp tar updates, or manually rebuild sqlite3 with latest tar in Docker"
+    },
+    {
+      "id": "tar-vulnerability-2",
+      "cve": "GHSA-5p8v-58qm-c7m8",
+      "package": "tar",
+      "severity": "MODERATE",
+      "type": "Symlink following / path traversal in tar extraction",
+      "description": "Same as tar-vulnerability-1 (linked CVE, multiple instances from same source)",
+      "reason": "See tar-vulnerability-1",
+      "affected": ["sqlite3@5.1.7 (via node-gyp build)"],
+      "linkedTo": "GHSA-5p8v-58qm-c7m8 (instance 2 of 3)",
+      "critical": false,
+      "riskLevel": "LOW (build-time only)",
+      "exploitability": "ZERO in our context (trusted npm registry)",
+      "impact": "Arbitrary file write only if npm registry is compromised",
+      "acceptedDate": "2026-01-28",
+      "acceptedBy": "Olav",
+      "reviewDate": "2026-04-01",
+      "expiresDate": "2026-05-31",
+      "fixVersion": "Automatic when sqlite3 rebuilds itself with patched tar",
+      "fixEffort": "4-6 hours (grouped with other tar fixes)",
+      "fixIsBreaking": false,
+      "status": "ACCEPTED",
+      "notes": "Linked to tar-vulnerability-1. Part of same CVE group.",
+      "remediation": "Monitor node-gyp tar updates"
+    },
+    {
+      "id": "tar-vulnerability-3",
+      "cve": "GHSA-5p8v-58qm-c7m8",
+      "package": "tar",
+      "severity": "MODERATE",
+      "type": "Symlink following / path traversal in tar extraction",
+      "description": "Same as tar-vulnerability-1 (linked CVE, multiple instances from same source)",
+      "reason": "See tar-vulnerability-1",
+      "affected": ["sqlite3@5.1.7 (via node-gyp build)"],
+      "linkedTo": "GHSA-5p8v-58qm-c7m8 (instance 3 of 3 - FINAL)",
+      "critical": false,
+      "riskLevel": "LOW (build-time only)",
+      "exploitability": "ZERO in our context (trusted npm registry)",
+      "impact": "Arbitrary file write only if npm registry is compromised",
+      "acceptedDate": "2026-01-28",
+      "acceptedBy": "Olav",
+      "reviewDate": "2026-04-01",
+      "expiresDate": "2026-05-31",
+      "fixVersion": "Automatic when sqlite3 rebuilds itself with patched tar",
+      "fixEffort": "4-6 hours (grouped with other tar fixes)",
+      "fixIsBreaking": false,
+      "status": "ACCEPTED",
+      "notes": "Linked to tar-vulnerability-1 & 2. FINAL instance of tar CVE from node-gyp.",
+      "remediation": "Monitor node-gyp tar updates"
+    }
+  ],
+  "summary": {
+    "totalAccepted": 13,
+    "highSeverity": 5,
+    "moderateSeverity": 4,
+    "criticalExemptions": 4,
+    "linkedVulnerabilities": {
+      "undici": {
+        "cve": "GHSA-6hxm-7r2w-pxwj",
+        "instances": 4,
+        "reason": "Same CVE appearing 4 times in dependency chain"
+      },
+      "tar": {
+        "cve": "GHSA-5p8v-58qm-c7m8",
+        "instances": 3,
+        "reason": "Same CVE appearing 3 times from node-gyp"
+      }
+    }
+  },
+  "remediation": {
+    "immediate": [
+      {
+        "priority": "P0-CRITICAL",
+        "description": "Monitor undici exemption expiration (2026-05-01)",
+        "action": "Begin discord.js v15 migration planning",
+        "daysRemaining": "92 days (as of 2026-01-29)"
+      }
+    ],
+    "shortTerm": [
+      {
+        "priority": "P1-HIGH",
+        "description": "Fix glob vulnerability (expires 2026-03-31)",
+        "action": "Upgrade @next/eslint-plugin-next to 16.1.4+",
+        "effort": "1-2 hours",
+        "daysRemaining": "61 days"
+      }
+    ],
+    "mediumTerm": [
+      {
+        "priority": "P2-MEDIUM",
+        "description": "Fix tar vulnerabilities (expires 2026-05-31)",
+        "action": "Rebuild sqlite3 or wait for node-gyp updates",
+        "effort": "4-6 hours",
+        "daysRemaining": "122 days"
+      },
+      {
+        "priority": "P2-MEDIUM",
+        "description": "Complete discord.js v15 migration (expires 2026-05-01)",
+        "action": "Follow PHASE-03.1.1-DISCORD-JS-V15-IMPLEMENTATION-PLAN.md",
+        "effort": "22-35 hours",
+        "daysRemaining": "92 days"
+      }
+    ]
+  },
+  "notes": {
+    "sourceOfTruth": "This JSON file is the AUTHORITATIVE source. All documentation must be generated from this file.",
+    "syncProcess": "Run 'npm run sync:vulnerabilities' to regenerate VULNERABILITY-ACCEPTANCE-LOG.md",
+    "automationRules": [
+      "CI workflow must check against this baseline",
+      "New vulnerabilities not in baseline cause CI failure",
+      "Expired exemptions (expiresDate < today) cause CI failure",
+      "Sync script must run before every commit (via Husky pre-commit hook)"
+    ],
+    "importantDates": {
+      "2026-03-31": "glob exemption expires - MUST fix before then",
+      "2026-04-01": "Review date for medium-term vulnerabilities",
+      "2026-05-01": "CRITICAL: All undici exemptions expire - MUST complete discord.js v15 migration",
+      "2026-05-31": "tar exemptions expire",
+      "2026-08-31": "Baseline itself expires - MUST renew or expire all exemptions"
+    }
+  },
+  "acceptancePolicy": {
+    "rule1": "Vulnerabilities must be in transitive dependencies or vendor code",
+    "rule2": "Direct dependencies must have no vulnerabilities beyond LOW severity",
+    "rule3": "Accepted vulnerabilities must have identified fixes with target dates",
+    "rule4": "Security review required for any CRITICAL vulnerabilities",
+    "rule5": "Vulnerability baseline must be reviewed quarterly",
+    "rule6": "New vulnerabilities not in baseline must fail CI until added to baseline",
+    "rule7": "Workflow failures on NEW vulnerabilities (outside baseline) block PRs and releases"
+  },
+  "auditRules": {
+    "failOnCritical": true,
+    "failOnNewHigh": true,
+    "failOnNewModerate": true,
+    "failOnBaselineIncrease": true,
+    "failOnUnknownVulnerabilities": true,
+    "continueOnAcceptedVulnerabilities": true
+  },
+  "workflowBehavior": {
+    "securityWorkflow": "CONTINUE_ON_ERROR - Report findings, check against baseline",
+    "prCheckWorkflow": "ALLOW_MERGE - If vulnerabilities <= baseline, allow PR to merge",
+    "releaseWorkflow": "ALLOW_RELEASE - If vulnerabilities <= baseline, allow version bumping",
+    "auditCommentOnPr": true,
+    "auditSummaryInWorkflow": true
+  },
+  "escalationPolicy": {
+    "lowSeverityIncrease": "Log only, no action",
+    "moderateSeverityNew": "Alert team, block PR",
+    "highSeverityNew": "Alert team, block PR, notify security",
+    "criticalVulnerability": "Immediate block, security review required, potential incident escalation"
+  },
+  "changeLog": [
+    {
+      "date": "2026-01-28",
+      "version": "1.0.0",
+      "changes": "Initial baseline created after Phase 03.2 completion",
+      "vulnerabilities": 7,
+      "approver": "Engineering Team"
+    }
+  ],
+  "nextReview": "2026-02-28",
+  "notes": [
+    "All 7 vulnerabilities are from discord.js v14.x ecosystem",
+    "discord.js v15 migration (Phase 03.1 implementation) will resolve all vulnerabilities",
+    "Estimated effort: 22-35 hours for full migration",
+    "Implementation can proceed in parallel with Phase 03.3",
+    "ESLint v9 migration deferred to future phase (not security critical)",
+    "Dashboard vulnerabilities can be resolved independently in 1-2 hours if needed"
+  ]
+}

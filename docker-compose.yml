@@ -1,0 +1,67 @@
+services:
+  necromundabot:
+    # Build from Dockerfile in the current directory
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Enable BuildKit for faster builds with better caching
+      args:
+        BUILDKIT_INLINE_CACHE: "1"
+    
+    # Container name for easy reference
+    container_name: necromundabot
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Environment variables
+    env_file:
+      - .env
+    
+    # Environment variables that can be overridden
+    environment:
+      # Database path inside container (persisted via volume)
+      DATABASE_PATH: /app/data/necromundabot.db
+      # Node environment
+      NODE_ENV: production
+    
+    # Volume mounts for persistence
+    volumes:
+      # Database volume - survives container rebuilds
+      - necromundabot_data:/app/data
+      # Mount .env file directly to ensure environment variables are available
+      - ./.env:/app/.env:ro
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Named volume for database persistence
+volumes:
+  necromundabot_data:
+    driver: local
+    # Docker Desktop on WSL: Use relative path or let Docker manage the volume
+    # If you need local file access, use: driver_opts with type: none
+    # For most cases, this simpler approach works better in Docker Desktop
+    # driver_opts:
+    #   type: none
+    #   o: bind
+    #   device: ./data
+
+# Network (optional, can be used for future services like dashboard)
+networks:
+  default:
+    name: necromundabot-network

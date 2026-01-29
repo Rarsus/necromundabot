@@ -1,0 +1,67 @@
+# Docker ignore file - excludes files from Docker build context
+# Reduces build time and image size
+
+# Git files
+.git
+.gitignore
+.gitmodules
+
+# Node
+node_modules
+npm-debug.log
+npm-error.log
+# Don't ignore package-lock.json - we use npm ci for reproducible builds
+# package-lock.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Project files
+.eslintcache
+.prettierignore
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Documentation
+docs
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
+
+# Data
+data
+.data
+
+# Testing
+coverage
+.nyc_output
+jest.config.js
+
+# Miscellaneous
+.env.example
+SETUP-COMPLETE.md
+project-docs

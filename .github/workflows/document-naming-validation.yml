@@ -1,0 +1,194 @@
+name: Document Naming Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '**.md'
+      - 'docs/**'
+      - 'docs/QRC/**'
+      - 'project-docs/**'
+      - '.github/scripts/validate-doc-naming.js'
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
+    paths:
+      - '**.md'
+      - 'docs/**'
+      - 'docs/QRC/**'
+      - 'project-docs/**'
+
+# Prevent duplicate runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate-doc-naming:
+    name: 'Validate Document Naming Convention'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: 🏗️ Create scripts directory
+        run: mkdir -p .github/scripts
+
+      - name: 🔍 Validate document naming
+        id: naming
+        run: |
+          npm run validate:docs:strict 2>&1 | tee doc-naming-output.txt
+          NAMING_EXIT_CODE=$?
+          echo "exit_code=${NAMING_EXIT_CODE}" >> $GITHUB_OUTPUT
+
+          # Count invalid files
+          INVALID_COUNT=$(grep -c "❌" doc-naming-output.txt || echo "0")
+          echo "invalid_count=${INVALID_COUNT}" >> $GITHUB_OUTPUT
+
+          exit $NAMING_EXIT_CODE
+        continue-on-error: true
+
+      - name: 💬 Comment on PR with validation results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            let message = '## 📚 Document Naming Convention Validation\n\n';
+            const invalidCount = ${{ steps.naming.outputs.invalid_count || 0 }};
+            const exitCode = ${{ steps.naming.outputs.exit_code }};
+
+            if (exitCode === 0) {
+              message += '✅ **All documents follow naming conventions!**\n';
+              message += '- All filenames are properly formatted\n';
+              message += '- All files are in correct locations\n';
+              message += '- Character restrictions enforced\n';
+            } else {
+              message += '❌ **Document naming convention violations found**\n';
+              message += `- ${invalidCount} file(s) with naming issues\n\n`;
+
+              if (fs.existsSync('doc-naming-output.txt')) {
+                const output = fs.readFileSync('doc-naming-output.txt', 'utf8');
+                const lines = output.split('\n');
+
+                // Extract error section
+                const errorStart = lines.findIndex(l => l.includes('ERRORS'));
+                if (errorStart !== -1) {
+                  const errorLines = lines.slice(errorStart, Math.min(errorStart + 20, lines.length));
+                  message += '**Issues found:**\n```\n';
+                  message += errorLines.join('\n');
+                  message += '\n```\n\n';
+                }
+              }
+
+              message += '**How to fix:**\n';
+              message += '1. Review the [DOCUMENT-NAMING-CONVENTION.md](../DOCUMENT-NAMING-CONVENTION.md)\n';
+              message += '2. Rename files to match the expected pattern\n';
+              message += '3. Update cross-references in other documents\n';
+              message += '4. Run locally: `npm run validate:docs`\n';
+              message += '\n**Examples of correct naming:**\n';
+              message += '- Root level: `PHASE-23.1-PLAN.md`, `README.md`, `CHANGELOG.md`\n';
+              message += '- Typed docs: `TEST-NAMING-GUIDE.md`, `CONFIG-ESLINT-SETUP.md`\n';
+              message += '- Directory docs: `setup-guide.md`, `quick-reference.md`\n';
+            }
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Document Naming Convention Validation')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: message,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: message,
+              });
+            }
+
+      - name: 📋 Add check status
+        if: always()
+        run: |
+          if [ ${{ steps.naming.outputs.exit_code }} -eq 0 ]; then
+            echo "✅ Document naming validation passed"
+            exit 0
+          else
+            echo "❌ Document naming validation failed"
+            exit 1
+          fi
+
+  document-consistency:
+    name: 'Check Documentation Consistency'
+    runs-on: ubuntu-latest
+    needs: validate-doc-naming
+    if: always()
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔗 Verify INDEX files exist
+        run: |
+          echo "Checking for required INDEX files..."
+          files=(
+            "DOCUMENTATION-INDEX.md"
+            "docs/INDEX.md"
+            "project-docs/INDEX.md"
+          )
+
+          missing=0
+          for file in "${files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing: $file"
+              missing=$((missing + 1))
+            else
+              echo "✅ Found: $file"
+            fi
+          done
+
+          if [ $missing -gt 0 ]; then
+            echo "⚠️  $missing INDEX file(s) missing"
+          fi
+
+      - name: 🏗️ Verify README files in submodules
+        run: |
+          echo "Checking for README.md in submodules..."
+          for dir in repos/*/; do
+            if [ -f "${dir}README.md" ]; then
+              echo "✅ Found: ${dir}README.md"
+            else
+              echo "❌ Missing: ${dir}README.md"
+            fi
+          done

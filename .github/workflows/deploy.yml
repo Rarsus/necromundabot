@@ -1,0 +1,368 @@
+name: Deploy - Production Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+  deployments: write
+
+jobs:
+  pre-deploy-validation:
+    name: 'Pre-Deployment Validation'
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: 🔍 Quick lint check
+        id: lint
+        continue-on-error: true
+        run: npm run lint
+
+      - name: 🧪 Quick test check
+        id: test
+        continue-on-error: true
+        run: npm run test:quick -- --silent
+
+      - name: 📊 Security audit
+        id: audit
+        continue-on-error: true
+        run: |
+          npm audit --audit-level=critical 2>&1 | tee audit.txt
+          CRITICAL=$(grep -c "critical" audit.txt || echo "0")
+          echo "critical=${CRITICAL}" >> $GITHUB_OUTPUT
+
+      - name: ⛔ Fail if critical security issues
+        if: steps.audit.outputs.critical > 0
+        run: |
+          echo "❌ Critical security vulnerabilities found - deployment blocked"
+          exit 1
+
+      - name: ⛔ Fail if linting failed
+        if: steps.lint.outcome == 'failure'
+        run: |
+          echo "❌ Code quality checks failed - deployment blocked"
+          exit 1
+
+      - name: ⛔ Fail if tests failed
+        if: steps.test.outcome == 'failure'
+        run: |
+          echo "❌ Tests failed - deployment blocked"
+          exit 1
+
+      - name: ✅ Pre-deployment validation passed
+        run: echo "Pre-deployment validation completed successfully"
+
+  build-and-push-docker:
+    name: 'Build & Push Docker Image'
+    runs-on: ubuntu-latest
+    needs: [pre-deploy-validation]
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image: ${{ steps.build.outputs.image }}
+      tag: ${{ steps.build.outputs.tag }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📊 Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🏗️ Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 📝 Set output variables
+        run: |
+          echo "image=ghcr.io/${{ github.repository }}" >> $GITHUB_OUTPUT
+          echo "tag=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+  deploy-staging:
+    name: 'Deploy to Staging'
+    runs-on: ubuntu-latest
+    needs: [build-and-push-docker]
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging.example.com
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Create deployment
+        id: deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.ref,
+              environment: 'staging',
+              description: 'Staging deployment',
+              required_contexts: [],
+              auto_merge: false
+            });
+            core.setOutput('deployment_id', deployment.data.id);
+
+      - name: 🔄 Update deployment status to in_progress
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.deployment_id }},
+              state: 'in_progress',
+              description: 'Staging deployment in progress'
+            });
+
+      - name: 📝 Deploy application
+        id: deploy
+        continue-on-error: true
+        run: |
+          # Add your staging deployment command here
+          # Example: docker-compose -f docker-compose.staging.yml pull && docker-compose -f docker-compose.staging.yml up -d
+          echo "🚀 Deploying to staging environment"
+          echo "Image: ${{ needs.build-and-push-docker.outputs.image }}:${{ needs.build-and-push-docker.outputs.tag }}"
+
+      - name: ✅ Update deployment status to success
+        if: steps.deploy.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.deployment_id }},
+              state: 'success',
+              description: 'Staging deployment completed',
+              environment_url: 'https://staging.example.com'
+            });
+
+      - name: ❌ Update deployment status to failure
+        if: steps.deploy.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.deployment_id }},
+              state: 'failure',
+              description: 'Staging deployment failed'
+            });
+
+  smoke-tests-staging:
+    name: 'Smoke Tests - Staging'
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: needs.deploy-staging.result == 'success'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: 🧪 Run smoke tests
+        id: smoke
+        continue-on-error: true
+        env:
+          STAGING_URL: https://staging.example.com
+        run: |
+          # Add smoke tests here
+          # Example: npm run test:smoke -- --url $STAGING_URL
+          echo "Running smoke tests against staging environment"
+
+      - name: 📝 Report smoke test results
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const outcome = '${{ steps.smoke.outcome }}';
+            let summary = '## 🧪 Staging Smoke Tests\n\n';
+
+            if (outcome === 'success') {
+              summary += '✅ All smoke tests passed\n';
+              core.notice(summary);
+            } else {
+              summary += '❌ Smoke tests failed\n';
+              summary += 'Investigate staging deployment before production release\n';
+              core.setFailed(summary);
+            }
+
+  deploy-production:
+    name: 'Deploy to Production'
+    runs-on: ubuntu-latest
+    needs: [build-and-push-docker, smoke-tests-staging]
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+    environment:
+      name: production
+      url: https://example.com
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Create deployment
+        id: deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.ref,
+              environment: 'production',
+              description: 'Production deployment',
+              required_contexts: [],
+              auto_merge: false
+            });
+            core.setOutput('deployment_id', deployment.data.id);
+
+      - name: 🔄 Update deployment status to in_progress
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.deployment_id }},
+              state: 'in_progress',
+              description: 'Production deployment in progress'
+            });
+
+      - name: 📝 Deploy application
+        id: deploy
+        continue-on-error: true
+        run: |
+          # Add your production deployment command here
+          # Example: docker-compose -f docker-compose.yml pull && docker-compose -f docker-compose.yml up -d
+          echo "🚀 Deploying to production environment"
+          echo "Image: ${{ needs.build-and-push-docker.outputs.image }}:${{ needs.build-and-push-docker.outputs.tag }}"
+
+          # Add health check
+          sleep 5
+          # curl -f https://example.com/health || exit 1
+
+      - name: ✅ Update deployment status to success
+        if: steps.deploy.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.deployment_id }},
+              state: 'success',
+              description: 'Production deployment completed',
+              environment_url: 'https://example.com'
+            });
+
+      - name: ❌ Update deployment status to failure
+        if: steps.deploy.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.deployment_id }},
+              state: 'failure',
+              description: 'Production deployment failed'
+            });
+
+  deployment-summary:
+    name: 'Deployment Summary'
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [pre-deploy-validation, build-and-push-docker, deploy-staging, deploy-production]
+
+    steps:
+      - name: 📋 Generate deployment summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const preDeploy = '${{ needs.pre-deploy-validation.result }}';
+            const build = '${{ needs.build-and-push-docker.result }}';
+            const staging = '${{ needs.deploy-staging.result }}';
+            const production = '${{ needs.deploy-production.result }}';
+
+            let summary = '## 🚀 Deployment Summary\n\n';
+            summary += `${preDeploy === 'success' ? '✅' : '❌'} Pre-Deployment Validation\n`;
+            summary += `${build === 'success' ? '✅' : '❌'} Docker Build & Push\n`;
+            summary += `${staging === 'success' ? '✅' : '⏭️'} Staging Deployment\n`;
+            summary += `${production === 'success' ? '✅' : '⏭️'} Production Deployment\n`;
+
+            core.notice(summary);

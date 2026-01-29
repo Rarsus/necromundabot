@@ -1,0 +1,49 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "node",
+      "args": ["./.mcp/mcp-servers/filesystem-server.js"],
+      "env": {
+        "MCP_FILESYSTEM_ROOT": "${workspaceFolder}"
+      },
+      "disabled": false,
+      "alwaysAllow": []
+    },
+    "git": {
+      "command": "node",
+      "args": ["./.mcp/mcp-servers/git-server.js"],
+      "env": {
+        "MCP_GIT_REPO": "${workspaceFolder}"
+      },
+      "disabled": false,
+      "alwaysAllow": []
+    },
+    "shell": {
+      "command": "node",
+      "args": ["./.mcp/mcp-servers/shell-server.js"],
+      "env": {
+        "MCP_SHELL_CWD": "${workspaceFolder}"
+      },
+      "disabled": false,
+      "alwaysAllow": ["npm test", "npm run lint:fix", "npm run register-commands"]
+    },
+    "database": {
+      "command": "node",
+      "args": ["./.mcp/mcp-servers/database-server.js"],
+      "env": {
+        "MCP_DB_ROOT": "${workspaceFolder}/data/db"
+      },
+      "disabled": false,
+      "alwaysAllow": []
+    },
+    "npm": {
+      "command": "node",
+      "args": ["./.mcp/mcp-servers/npm-server.js"],
+      "env": {
+        "MCP_NPM_CWD": "${workspaceFolder}"
+      },
+      "disabled": false,
+      "alwaysAllow": []
+    }
+  }
+}

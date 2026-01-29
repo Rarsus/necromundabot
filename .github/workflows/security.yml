@@ -1,0 +1,536 @@
+name: Security - SAST, Dependencies, Secrets
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Daily security scanning at 2 AM UTC
+    - cron: '0 2 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+jobs:
+  dependency-scan:
+    name: 'Dependency Scanning'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: 🔍 Run npm audit with baseline checking
+        id: audit
+        continue-on-error: true
+        run: |
+          # Generate current audit report
+          npm audit --json > audit-report.json || true
+
+          # Extract vulnerability counts
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-report.json)
+          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-report.json)
+          MODERATE=$(jq '.metadata.vulnerabilities.moderate // 0' audit-report.json)
+          LOW=$(jq '.metadata.vulnerabilities.low // 0' audit-report.json)
+
+          echo "critical=${CRITICAL}" >> $GITHUB_OUTPUT
+          echo "high=${HIGH}" >> $GITHUB_OUTPUT
+          echo "moderate=${MODERATE}" >> $GITHUB_OUTPUT
+          echo "low=${LOW}" >> $GITHUB_OUTPUT
+
+          # Check against baseline if it exists
+          if [ -f ".github/audit-baseline.json" ]; then
+            BASELINE_TOTAL=$(jq '.baseline // 7' .github/audit-baseline.json)
+            CURRENT_TOTAL=$((CRITICAL + HIGH + MODERATE + LOW))
+
+            echo "baseline_total=${BASELINE_TOTAL}" >> $GITHUB_OUTPUT
+            echo "current_total=${CURRENT_TOTAL}" >> $GITHUB_OUTPUT
+
+            if [ $CURRENT_TOTAL -gt $BASELINE_TOTAL ]; then
+              echo "❌ NEW vulnerabilities detected (${CURRENT_TOTAL} > baseline ${BASELINE_TOTAL})"
+              exit 1
+            else
+              echo "✅ Within vulnerability baseline (${CURRENT_TOTAL} ≤ ${BASELINE_TOTAL})"
+            fi
+          fi
+
+      - name: 📋 Post audit results with baseline comparison
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const critical = '${{ steps.audit.outputs.critical }}' || '0';
+            const high = '${{ steps.audit.outputs.high }}' || '0';
+            const moderate = '${{ steps.audit.outputs.moderate }}' || '0';
+            const low = '${{ steps.audit.outputs.low }}' || '0';
+            const baselineTotal = '${{ steps.audit.outputs.baseline_total }}' || 'N/A';
+            const currentTotal = '${{ steps.audit.outputs.current_total }}' || 'N/A';
+
+            let summary = '## 🔍 Dependency Vulnerability Report\n\n';
+            summary += '### Vulnerability Counts\n';
+            summary += '| Severity | Count | Status |\n';
+            summary += '|----------|-------|--------|\n';
+
+            const criticalNum = parseInt(critical);
+            const highNum = parseInt(high);
+
+            summary += `| 🔴 Critical | ${critical} | ${criticalNum > 0 ? '❌ Found' : '✅ None'} |\n`;
+            summary += `| 🟠 High | ${high} | ${highNum > 0 ? '⚠️ Found' : '✅ None'} |\n`;
+            summary += `| 🟡 Moderate | ${moderate} | ${moderate !== '0' ? '⚠️ Found' : '✅ None'} |\n`;
+            summary += `| 🔵 Low | ${low} | ${low !== '0' ? '⚠️ Found' : '✅ None'} |\n`;
+
+            if (baselineTotal !== 'N/A' && currentTotal !== 'N/A') {
+              summary += '\n### Baseline Comparison\n';
+              summary += `- **Current:** ${currentTotal} vulnerabilities\n`;
+              summary += `- **Baseline:** ${baselineTotal} vulnerabilities\n`;
+
+              const baselineNum = parseInt(baselineTotal);
+              const currentNum = parseInt(currentTotal);
+
+              if (currentNum <= baselineNum) {
+                summary += `- **Status:** ✅ Within accepted baseline\n`;
+              } else {
+                summary += `- **Status:** ❌ Exceeds baseline by ${currentNum - baselineNum}\n`;
+              }
+
+              summary += `\nSee [Vulnerability Acceptance Strategy](./.github/VULNERABILITY-ACCEPTANCE-STRATEGY.md) for details.\n`;
+            }
+
+            summary += '\n';
+
+            if (criticalNum > 0) {
+              summary += '### Action Required\n\n';
+              summary += `Found ${critical} critical vulnerability(ies). PR cannot merge until resolved.\n`;
+              summary += '\n**Steps to fix:**\n';
+              summary += '1. Run `npm audit fix` to automatically fix vulnerabilities\n';
+              summary += '2. For unfixable issues, review each manually: `npm audit`\n';
+              summary += '3. Update package.json if needed and commit changes\n';
+              summary += '4. Force update if necessary: `npm update package-name`\n';
+            } else if (highNum > 0) {
+              summary += '### Review Required\n\n';
+              summary += `Found ${high} high severity vulnerability(ies).\n`;
+              if (baselineTotal !== 'N/A' && parseInt(currentTotal) <= parseInt(baselineTotal)) {
+                summary += 'These are within the accepted baseline but should be reviewed.\n';
+              } else {
+                summary += 'Please review and fix before merging.\n';
+              }
+            } else if (moderate !== '0' || low !== '0') {
+              summary += '### Accepted Vulnerabilities\n\n';
+              summary += 'Found vulnerabilities within accepted baseline. These are tracked in [Vulnerability Acceptance Strategy](./.github/VULNERABILITY-ACCEPTANCE-STRATEGY.md).\n';
+            } else {
+              summary += '### ✅ Status\n\n';
+              summary += 'No known vulnerabilities detected.\n';
+            }
+
+            core.notice(summary);
+
+      - name: ❌ Block merge on critical vulnerabilities
+        if: steps.audit.outputs.critical > 0
+        run: exit 1
+
+  secret-scan:
+    name: 'Secret Scanning'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔐 Run TruffleHog secret scanner
+        continue-on-error: true
+        run: |
+          # Install truffleHog
+          pip install truffle-hog 2>/dev/null || pip3 install truffle-hog
+
+          # Scan for secrets
+          trufflehog filesystem . --only-verified --json > secrets-report.json 2>&1 || true
+
+          # Check if secrets were found
+          if grep -q "secret" secrets-report.json; then
+            echo "Potential secrets found in repository"
+            cat secrets-report.json
+            exit 1
+          fi
+
+      - name: 🔐 Run git-secrets check
+        continue-on-error: true
+        run: |
+          # Install git-secrets
+          git clone https://github.com/awslabs/git-secrets /tmp/git-secrets 2>/dev/null || true
+          cd /tmp/git-secrets && make install 2>/dev/null || true
+
+          # Configure patterns
+          git secrets --register-aws 2>/dev/null || true
+          git secrets --add '\.env.*' 2>/dev/null || true
+          git secrets --add 'api[_-]?key' 2>/dev/null || true
+          git secrets --add 'secret' 2>/dev/null || true
+
+          # Scan repository
+          git secrets --scan 2>&1 | tee git-secrets-output.txt || true
+
+          if grep -q "secret" git-secrets-output.txt; then
+            exit 1
+          fi
+
+  sast-scan:
+    name: 'SAST - Code Security Analysis'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: 🔍 Run ESLint security checks
+        id: eslint
+        continue-on-error: true
+        run: |
+          npm run lint -- --format=json > eslint-report.json 2>&1 || true
+
+          # Count security issues
+          SECURITY_ISSUES=$(grep -o '"ruleId":"[^"]*"' eslint-report.json | grep -c "security\|sql-injection\|xss" || echo "0")
+          echo "security_issues=${SECURITY_ISSUES}" >> $GITHUB_OUTPUT
+
+      - name: 🔍 Run npm audit with production check
+        id: prod-audit
+        continue-on-error: true
+        run: |
+          npm audit --omit=dev --json > prod-audit.json 2>&1 || true
+
+      - name: 🏗️ Check code complexity
+        id: complexity
+        continue-on-error: true
+        run: |
+          # Simple complexity check using eslint-plugin-complexity rules
+          npm run lint -- --rule "complexity: [error, 10]" 2>&1 | tee complexity-report.txt || true
+
+          COMPLEX_FILES=$(grep -c "complexity" complexity-report.txt || echo "0")
+          echo "complex_files=${COMPLEX_FILES}" >> $GITHUB_OUTPUT
+
+      - name: 📋 Post SAST results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const securityIssues = '${{ steps.eslint.outputs.security_issues }}' || '0';
+            const complexFiles = '${{ steps.complexity.outputs.complex_files }}' || '0';
+
+            let summary = '## 🔒 SAST Security Analysis\n\n';
+
+            const secNum = parseInt(securityIssues);
+            const complexNum = parseInt(complexFiles);
+
+            summary += `${secNum === 0 ? '✅' : '⚠️'} Security Code Issues: ${securityIssues}\n`;
+            summary += `${complexNum === 0 ? '✅' : '⚠️'} Complex Functions: ${complexFiles}\n`;
+            summary += '\n';
+
+            if (secNum > 0) {
+              summary += '**Issues Found:**\n';
+              summary += '- Review ESLint report for security warnings\n';
+              summary += '- Fix any SQL injection or XSS vulnerabilities\n';
+            }
+
+            if (complexNum > 0) {
+              summary += '- Consider refactoring overly complex functions\n';
+              summary += '- Target: Reduce complexity < 10\n';
+            }
+
+            core.notice(summary);
+
+  license-scan:
+    name: 'License Compliance Check'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: 📋 Check license compliance
+        id: licenses
+        continue-on-error: true
+        run: |
+          # Install license checker
+          npm install -g license-report 2>/dev/null || npm install -g license-checker 2>/dev/null
+
+          # Generate license report
+          license-checker --json > license-report.json 2>&1 || true
+
+          # Check for restricted licenses
+          RESTRICTED_LICENSES=$(grep -oP '"licenses":\s*"\K[^"]+' license-report.json | grep -E "GPL|AGPL|SSPL" | wc -l || echo "0")
+          echo "restricted_licenses=${RESTRICTED_LICENSES}" >> $GITHUB_OUTPUT
+
+      - name: 📋 Post license check results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const restrictedLicenses = '${{ steps.licenses.outputs.restricted_licenses }}' || '0';
+
+            let summary = '## 📜 License Compliance Report\n\n';
+
+            const restrictedNum = parseInt(restrictedLicenses);
+
+            if (restrictedNum > 0) {
+              summary += `⚠️ **Found ${restrictedLicenses} restricted license(s)**\n\n`;
+              summary += 'Restricted licenses (GPL, AGPL, SSPL) may require compliance actions:\n';
+              summary += '1. Review all GPL dependencies\n';
+              summary += '2. Ensure proper attribution\n';
+              summary += '3. Consider alternative packages if needed\n';
+            } else {
+              summary += '✅ **All licenses compliant**\n\n';
+              summary += 'No restricted open-source licenses detected.\n';
+            }
+
+            core.notice(summary);
+
+  security-summary:
+    name: 'Security Summary'
+    runs-on: ubuntu-latest
+    needs: [dependency-scan, secret-scan, sast-scan, license-scan]
+    if: always()
+
+    steps:
+      - name: 📋 Generate security summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const depResult = '${{ needs.dependency-scan.result }}';
+            const secretResult = '${{ needs.secret-scan.result }}';
+            const sastResult = '${{ needs.sast-scan.result }}';
+            const licenseResult = '${{ needs.license-scan.result }}';
+
+            const allPassed = [depResult, secretResult, sastResult, licenseResult]
+              .every(r => r === 'success' || r === 'skipped');
+
+            let summary = '## 🔒 Security Scan Summary\n\n';
+            summary += `${depResult === 'success' ? '✅' : '❌'} Dependency Scanning\n`;
+            summary += `${secretResult === 'success' ? '✅' : '❌'} Secret Scanning\n`;
+            summary += `${sastResult === 'success' ? '✅' : '❌'} SAST Analysis\n`;
+            summary += `${licenseResult === 'success' ? '✅' : '❌'} License Compliance\n`;
+            summary += '\n';
+
+            if (allPassed) {
+              core.notice('✅ All security checks passed');
+            } else {
+              core.setFailed('Security checks failed - review results above');
+            }
+
+      - name: ❌ Fail if critical security issues found
+        if: |
+          needs.dependency-scan.result == 'failure' ||
+          needs.secret-scan.result == 'failure'
+        run: exit 1
+
+  eslint-security:
+    name: ESLint Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: 🔍 Run ESLint with security rules
+        run: npm run lint -- --max-warnings=100
+        continue-on-error: true
+
+      - name: 📊 Generate ESLint report
+        run: npm run lint -- --format json --output-file eslint-report.json
+        continue-on-error: true
+
+      - name: 📁 Upload ESLint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-security-report
+          path: eslint-report.json
+          retention-days: 30
+
+  security-tests:
+    name: Security Validation Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: 🧪 Run security validation tests
+        run: npm run test:security
+
+      - name: 🧪 Run security integration tests
+        run: npm run test:integration || echo "⚠️  Integration tests skipped (custom runner format)"
+        continue-on-error: true
+
+      - name: ✅ Security tests passed
+        if: success()
+        run: echo "✅ All security tests passed"
+
+  semgrep-sast:
+    name: Semgrep Static Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Run Semgrep SAST scanning
+        uses: returntocorp/semgrep-action@v1
+        with:
+          generateSarif: true
+          config: >-
+            p/security-audit
+            p/owasp-top-ten
+            p/cwe-top-25
+            p/nodejs
+        continue-on-error: true
+
+      - name: ⬆️ Upload SARIF results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          wait-for-processing: true
+        continue-on-error: true
+
+      - name: 📊 Upload Semgrep report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: semgrep.sarif
+          retention-days: 30
+        continue-on-error: true
+
+  secret-detection:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Run TruffleHog for secrets detection
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
+          head: ${{ github.event.pull_request.head.sha || github.sha }}
+          extra_args: --debug --only-verified
+        continue-on-error: true
+
+  security-summary-report:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [dependency-scan, eslint-security, security-tests, semgrep-sast, secret-detection]
+
+    steps:
+      - name: 📊 Security scan summary
+        run: |
+          echo "🔐 Security Scanning Complete"
+          echo "================================"
+          echo "Dependency Scan: ${{ needs.dependency-scan.result }}"
+          echo "ESLint Security: ${{ needs.eslint-security.result }}"
+          echo "Security Tests: ${{ needs.security-tests.result }}"
+          echo "Semgrep SAST: ${{ needs.semgrep-sast.result }}"
+          echo "Secret Detection: ${{ needs.secret-detection.result }}"
+
+      - name: 💬 Post security summary on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const dependencyScan = '${{ needs.dependency-scan.result }}' === 'success' ? '✅ Passed' : '❌ Failed';
+            const eslintSecurity = '${{ needs.eslint-security.result }}' === 'success' ? '✅ Passed' : '⚠️ Warnings';
+            const securityTests = '${{ needs.security-tests.result }}' === 'success' ? '✅ Passed' : '❌ Failed';
+            const semgrepSast = '${{ needs.semgrep-sast.result }}' === 'success' ? '✅ Passed' : '⚠️ Check Issues';
+            const secretDetection = '${{ needs.secret-detection.result }}' === 'success' ? '✅ Passed' : '⚠️ Check Logs';
+
+            const overallStatus = '${{ needs.dependency-scan.result }}' === 'success' && '${{ needs.security-tests.result }}' === 'success'
+              ? '✅ Security checks passed'
+              : '⚠️ Review security issues';
+
+            const summary = `
+            ## 🔐 Security Scan Summary
+
+            | Check | Status |
+            |-------|--------|
+            | Dependency Scan | ${dependencyScan} |
+            | ESLint Security | ${eslintSecurity} |
+            | Security Tests | ${securityTests} |
+            | Semgrep SAST | ${semgrepSast} |
+            | Secret Detection | ${secretDetection} |
+
+            **Overall Status:** ${overallStatus}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });

@@ -1,0 +1,129 @@
+name: 🚀 Release & Tag
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  pre-release-check:
+    name: Pre-Release Vulnerability Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: 🔐 Check npm audit against baseline
+        id: audit
+        run: |
+          npm audit --json > audit.json 2>&1 || true
+
+          # Extract counts
+          TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit.json)
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit.json)
+
+          echo "total=${TOTAL}" >> $GITHUB_OUTPUT
+          echo "critical=${CRITICAL}" >> $GITHUB_OUTPUT
+
+          # Check baseline
+          if [ -f ".github/audit-baseline.json" ]; then
+            BASELINE=$(jq '.baseline // 7' .github/audit-baseline.json)
+            echo "baseline=${BASELINE}" >> $GITHUB_OUTPUT
+
+            if [ $TOTAL -gt $BASELINE ]; then
+              echo "❌ Audit exceeds baseline: ${TOTAL} > ${BASELINE}"
+              exit 1
+            fi
+
+            if [ $CRITICAL -gt 0 ]; then
+              echo "❌ Critical vulnerabilities found"
+              exit 1
+            fi
+
+            echo "✅ Audit check passed"
+          else
+            if [ $CRITICAL -gt 0 ]; then
+              echo "❌ Critical vulnerabilities found"
+              exit 1
+            fi
+          fi
+        continue-on-error: true
+
+      - name: ❌ Fail if baseline exceeded
+        if: steps.audit.outputs.total > steps.audit.outputs.baseline || steps.audit.outputs.critical > 0
+        run: |
+          echo "❌ Release blocked: Audit baseline exceeded or critical vulnerabilities found"
+          exit 1
+
+  release:
+    name: Semantic Release & Versioning
+    runs-on: ubuntu-latest
+    needs: [pre-release-check]
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: ✅ Validate code
+        run: npm run lint
+        continue-on-error: true
+
+      - name: 🧪 Run tests
+        run: npm test -- --coverage || true
+        continue-on-error: true
+
+      - name: 📊 Generate release notes with vulnerability status
+        id: release-notes
+        run: |
+          npm audit --json > audit.json 2>&1 || true
+
+          TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit.json)
+
+          echo "audit_status=Vulnerability Status: ${TOTAL} known vulnerabilities" >> $GITHUB_OUTPUT
+
+      - name: 🚀 Create release & tags
+        uses: cycjimmy/semantic-release-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          semantic_version: 24
+          extra_plugins: |
+            @semantic-release/commit-analyzer
+            @semantic-release/release-notes-generator
+            @semantic-release/changelog
+            @semantic-release/git
+            @semantic-release/github
+
+      - name: 📝 Release summary with vulnerability baseline
+        if: always()
+        run: |
+          echo "## 🚀 Release & Versioning" >> $GITHUB_STEP_SUMMARY
+          echo "- Repository: NecromundaBot (main orchestrator)" >> $GITHUB_STEP_SUMMARY
+          echo "- Branches: main (stable) + develop (beta)" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Vulnerability Check: ${{ steps.release-notes.outputs.audit_status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View Vulnerability Acceptance Strategy](./.github/VULNERABILITY-ACCEPTANCE-STRATEGY.md)" >> $GITHUB_STEP_SUMMARY

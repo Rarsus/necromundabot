@@ -1,0 +1,267 @@
+name: Monitor discord.js v15 Milestone
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  check-milestone:
+    name: Check discord.js v15 Milestone Status
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔍 Check discord.js milestone #141 status
+        id: milestone
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Fetch discord.js milestone #141
+            const milestone = await github.rest.issues.getMilestone({
+              owner: 'discordjs',
+              repo: 'discord.js',
+              milestone_number: 141
+            });
+
+            const milestoneData = milestone.data;
+            const state = milestoneData.state;
+            const title = milestoneData.title;
+            const openIssues = milestoneData.open_issues;
+            const closedIssues = milestoneData.closed_issues;
+            const totalIssues = openIssues + closedIssues;
+            const percentComplete = totalIssues > 0 ? Math.round((closedIssues / totalIssues) * 100) : 0;
+            const dueOn = milestoneData.due_on || 'No due date set';
+
+            console.log(`Milestone: ${title}`);
+            console.log(`State: ${state}`);
+            console.log(`Progress: ${closedIssues}/${totalIssues} (${percentComplete}%)`);
+            console.log(`Open Issues: ${openIssues}`);
+            console.log(`Due Date: ${dueOn}`);
+
+            // Set outputs
+            core.setOutput('state', state);
+            core.setOutput('title', title);
+            core.setOutput('open_issues', openIssues);
+            core.setOutput('closed_issues', closedIssues);
+            core.setOutput('total_issues', totalIssues);
+            core.setOutput('percent_complete', percentComplete);
+            core.setOutput('due_on', dueOn);
+            core.setOutput('milestone_url', milestoneData.html_url);
+
+            return {
+              state,
+              title,
+              openIssues,
+              closedIssues,
+              totalIssues,
+              percentComplete,
+              dueOn,
+              url: milestoneData.html_url
+            };
+
+      - name: 📊 Display milestone status
+        run: |
+          echo "📋 discord.js v15 Milestone Status"
+          echo "=================================="
+          echo "Title: ${{ steps.milestone.outputs.title }}"
+          echo "State: ${{ steps.milestone.outputs.state }}"
+          echo "Progress: ${{ steps.milestone.outputs.closed_issues }}/${{ steps.milestone.outputs.total_issues }} (${{ steps.milestone.outputs.percent_complete }}%)"
+          echo "Open Issues: ${{ steps.milestone.outputs.open_issues }}"
+          echo "Due Date: ${{ steps.milestone.outputs.due_on }}"
+          echo "URL: ${{ steps.milestone.outputs.milestone_url }}"
+
+      - name: 🎉 Create issue when milestone is complete
+        if: steps.milestone.outputs.state == 'closed' || steps.milestone.outputs.percent_complete >= 100
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const percentComplete = ${{ steps.milestone.outputs.percent_complete }};
+            const milestoneState = '${{ steps.milestone.outputs.state }}';
+            const milestoneUrl = '${{ steps.milestone.outputs.milestone_url }}';
+
+            // Check if issue already exists
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'discord.js-v15,milestone-complete'
+            });
+
+            if (existingIssues.data.length > 0) {
+              console.log('Issue already exists, skipping creation');
+              return;
+            }
+
+            // Create new issue
+            const issueBody = `## 🎉 discord.js v15 Milestone Complete!
+
+            The discord.js v15 milestone #141 has been completed and is ready for migration.
+
+            ### Milestone Status
+            - **State:** ${milestoneState}
+            - **Progress:** ${percentComplete}% complete
+            - **URL:** ${milestoneUrl}
+
+            ### Next Steps
+
+            #### PHASE-03.1.2: Test discord.js v15 in Isolated Environment
+            - [ ] Create test branch
+            - [ ] Install discord.js v15
+            - [ ] Run full test suite
+            - [ ] Document actual failures
+            - [ ] Compare with predictions in PHASE-03.1.1
+
+            #### PHASE-03.1.3: Implement Migration
+            - [ ] Execute implementation plan
+            - [ ] Fix all failing tests
+            - [ ] Achieve 100% pass rate
+            - [ ] Performance testing
+
+            #### PHASE-03.1.4: Production Deployment
+            - [ ] Production deployment
+            - [ ] Monitoring and validation
+            - [ ] Post-deployment support
+
+            ### Documentation References
+            - [Migration Guide](./project-docs/PHASE-03.1/PHASE-03.1.1-DISCORD-JS-V15-MIGRATION.md)
+            - [Test Report](./project-docs/PHASE-03.1/PHASE-03.1.1-DISCORD-JS-V15-TEST-REPORT.md)
+            - [Implementation Plan](./project-docs/PHASE-03.1/PHASE-03.1.1-DISCORD-JS-V15-IMPLEMENTATION-PLAN.md)
+            - [Phase Index](./project-docs/PHASE-03.1/PHASE-03.1-INDEX.md)
+
+            ### Related
+            - Parent: #[PHASE-3.1-EPIC] npm Vulnerability Remediation
+            - Previous: #[PHASE-3.1.1] Vulnerability Analysis (✅ COMPLETE)
+            - Blocker: discord.js v15 milestone #141 (✅ NOW COMPLETE)
+
+            ---
+
+            **Auto-generated by discord.js milestone monitor**
+            **Triggered:** ${new Date().toISOString()}`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '[PHASE-03.1.2] discord.js v15 Ready - Begin Migration Testing',
+              body: issueBody,
+              labels: ['enhancement', 'discord.js-v15', 'milestone-complete', 'phase-03.1', 'automated']
+            });
+
+            console.log('✅ Created issue to proceed with PHASE-03.1.2');
+
+      - name: 📝 Update progress comment
+        if: steps.milestone.outputs.state == 'open' && steps.milestone.outputs.percent_complete < 100
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const percentComplete = ${{ steps.milestone.outputs.percent_complete }};
+            const openIssues = ${{ steps.milestone.outputs.open_issues }};
+            const closedIssues = ${{ steps.milestone.outputs.closed_issues }};
+            const totalIssues = ${{ steps.milestone.outputs.total_issues }};
+            const milestoneUrl = '${{ steps.milestone.outputs.milestone_url }}';
+            const dueOn = '${{ steps.milestone.outputs.due_on }}';
+
+            // Find existing PHASE-03.1.1 issue
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              labels: 'phase-03.1'
+            });
+
+            const phase311Issue = issues.data.find(issue => 
+              issue.title.includes('PHASE-03.1.1') || 
+              issue.title.includes('PHASE-3.1.1') ||
+              issue.title.includes('Vulnerability Analysis')
+            );
+
+            if (!phase311Issue) {
+              console.log('No PHASE-03.1.1 issue found, skipping comment update');
+              return;
+            }
+
+            const progressBar = '█'.repeat(Math.floor(percentComplete / 5)) + '░'.repeat(20 - Math.floor(percentComplete / 5));
+
+            const commentBody = `## 📊 discord.js v15 Milestone Update
+
+            **Status:** 🟡 In Progress
+
+            ### Progress
+            \`\`\`
+            ${progressBar} ${percentComplete}%
+            \`\`\`
+
+            - **Open Issues:** ${openIssues}
+            - **Closed Issues:** ${closedIssues}
+            - **Total Issues:** ${totalIssues}
+            - **Due Date:** ${dueOn}
+            - **Milestone:** [discord.js #141](${milestoneUrl})
+
+            ### Current Status
+            ${percentComplete >= 95 ? '🟢 **Almost Ready!** - Migration preparation can begin soon' : 
+              percentComplete >= 90 ? '🟡 **Nearing Completion** - Monitor closely for release' :
+              percentComplete >= 80 ? '🟡 **Good Progress** - Continue monitoring weekly' :
+              '🟡 **In Development** - v15 is still under active development'}
+
+            ### Next Action
+            ${percentComplete >= 95 ? '- Review migration documentation and prepare test environment' :
+              '- Continue waiting for v15 stable release\n- Monitor weekly updates'}
+
+            ---
+            **Last Updated:** ${new Date().toISOString()}  
+            **Auto-generated by discord.js milestone monitor**`;
+
+            // Check for existing monitor comments
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: phase311Issue.number
+            });
+
+            const existingComment = comments.data.find(comment => 
+              comment.body && comment.body.includes('discord.js v15 Milestone Update')
+            );
+
+            if (existingComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: commentBody
+              });
+              console.log('✅ Updated existing milestone progress comment');
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: phase311Issue.number,
+                body: commentBody
+              });
+              console.log('✅ Created new milestone progress comment');
+            }
+
+      - name: 📧 Notify on milestone completion
+        if: steps.milestone.outputs.state == 'closed' || steps.milestone.outputs.percent_complete >= 100
+        run: |
+          echo "🎉 discord.js v15 milestone is complete!"
+          echo "✅ Ready to proceed with PHASE-03.1.2"
+          echo "📝 Issue created to track next phase"
+
+      - name: ⚠️ Notify on delays
+        if: steps.milestone.outputs.percent_complete < 90
+        run: |
+          echo "⏳ discord.js v15 is at ${{ steps.milestone.outputs.percent_complete }}% completion"
+          echo "📊 ${{ steps.milestone.outputs.open_issues }} issues remaining"
+          echo "🔄 Will check again next week"
