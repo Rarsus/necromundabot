@@ -4,6 +4,7 @@
  */
 
 const assert = require('assert');
+
 const DatabaseService = require('../../src/services/DatabaseService');
 
 describe('DatabaseService', () => {

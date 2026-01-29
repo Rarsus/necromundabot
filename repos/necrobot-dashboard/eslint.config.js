@@ -1,6 +1,9 @@
 const js = require('@eslint/js');
 const importPlugin = require('eslint-plugin-import');
 const securityPlugin = require('eslint-plugin-security');
+const reactPlugin = require('eslint-plugin-react');
+const reactHooksPlugin = require('eslint-plugin-react-hooks');
+const jsxA11yPlugin = require('eslint-plugin-jsx-a11y');
 const globals = require('globals');
 
 module.exports = [
@@ -14,6 +17,7 @@ module.exports = [
       '**/coverage/**',
       '**/.env',
       '**/.env.local',
+      '**/.next/**',
     ],
   },
 
@@ -22,11 +26,17 @@ module.exports = [
 
   // Main configuration for source and test files
   {
-    files: ['src/**/*.js', 'tests/**/*.js'],
+    files: ['src/**/*.{js,jsx}', 'tests/**/*.{js,jsx}'],
     languageOptions: {
       ecmaVersion: 2021,
       sourceType: 'module',
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
       globals: {
+        ...globals.browser,
         ...globals.node,
         ...globals.es2021,
       },
@@ -34,6 +44,14 @@ module.exports = [
     plugins: {
       import: importPlugin,
       security: securityPlugin,
+      react: reactPlugin,
+      'react-hooks': reactHooksPlugin,
+      'jsx-a11y': jsxA11yPlugin,
+    },
+    settings: {
+      react: {
+        version: 'detect',
+      },
     },
     rules: {
       // ESLint Core Rules
@@ -43,7 +61,7 @@ module.exports = [
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       complexity: ['warn', 18],
       semi: ['error', 'always'],
-      quotes: ['error', 'single', { avoidEscape: true }],
+      quotes: ['error', 'single', { avoidEscape: true, allowTemplateLiterals: true }],
       indent: ['error', 2],
       'no-trailing-spaces': 'error',
       'eol-last': ['error', 'always'],
@@ -66,6 +84,19 @@ module.exports = [
         },
       ],
 
+      // React Rules
+      'react/prop-types': 'warn',
+      'react/react-in-jsx-scope': 'off', // Not needed in Next.js
+      'react/jsx-uses-react': 'off', // Not needed in Next.js
+
+      // React Hooks Rules
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+
+      // Accessibility Rules
+      'jsx-a11y/anchor-is-valid': 'warn',
+      'jsx-a11y/alt-text': 'warn',
+
       // Security Rules
       'security/detect-object-injection': 'warn',
       'security/detect-non-literal-fs-filename': 'warn',
@@ -76,7 +107,7 @@ module.exports = [
 
   // Test files configuration
   {
-    files: ['tests/**/*.js', '**/*.test.js'],
+    files: ['tests/**/*.{js,jsx}', '**/*.test.{js,jsx}'],
     languageOptions: {
       globals: {
         ...globals.node,

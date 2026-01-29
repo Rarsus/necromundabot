@@ -4,13 +4,8 @@
  */
 
 const assert = require('assert');
-const {
-  sendSuccess,
-  sendError,
-  sendInfo,
-  sendDM,
-  sendDataEmbed,
-} = require('../../src/utils/helpers/response-helpers');
+
+const { sendSuccess, sendError, sendInfo, sendDM, sendDataEmbed } = require('../../src/utils/helpers/response-helpers');
 
 describe('Response Helpers', () => {
   let mockInteraction;
