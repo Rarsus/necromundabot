@@ -58,28 +58,45 @@ jobs:
         continue-on-error: true
         run: |
           set +e  # Don't fail on npm audit exit code
-          npm audit --audit-level=critical 2>&1 | tee audit.txt
-          AUDIT_EXIT=$?
           
-          # Check for critical vulnerabilities (exit code 1 means vulnerabilities found)
-          if [ $AUDIT_EXIT -eq 0 ]; then
-            CRITICAL="0"
-          else
-            # Count the number of critical vulnerabilities mentioned
-            CRITICAL=$(grep -c "critical" audit.txt 2>/dev/null || echo "0")
-            # If grep returned 0, but audit failed, assume there are critical issues
-            if [ "$CRITICAL" = "0" ]; then
-              CRITICAL="1"
+          # Run full audit and save output
+          npm audit --json > audit-full.json 2>/dev/null
+          
+          # Check for CRITICAL vulnerabilities first (hard block)
+          CRITICAL=$(npm audit --audit-level=critical 2>&1 | grep -c "critical" || echo "0")
+          
+          # Check against accepted vulnerabilities baseline
+          if [ -f ".github/audit-baseline.json" ]; then
+            # Get current total vulnerability count
+            CURRENT_TOTAL=$(jq '.metadata.vulnerabilities.total' audit-full.json 2>/dev/null || echo "0")
+            BASELINE_TOTAL=$(jq '.baseline // 12' .github/audit-baseline.json)
+            
+            # Only fail if CURRENT exceeds the BASELINE (NEW vulnerabilities)
+            if [ "$CURRENT_TOTAL" -gt "$BASELINE_TOTAL" ]; then
+              EXCEEDED="1"
+            else
+              EXCEEDED="0"
             fi
+          else
+            # No baseline file - use strict critical-only check
+            EXCEEDED="$CRITICAL"
           fi
           
           echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+          echo "exceeded=$EXCEEDED" >> $GITHUB_OUTPUT
           set -e
 
       - name: ⛔ Fail if critical security issues
         if: steps.audit.outputs.critical > 0
         run: |
-          echo "❌ Critical security vulnerabilities found - deployment blocked"
+          echo "❌ Critical (CVSS 9.0+) vulnerabilities found - deployment blocked"
+          exit 1
+
+      - name: ⛔ Fail if vulnerabilities exceed accepted baseline
+        if: steps.audit.outputs.exceeded > 0
+        run: |
+          echo "❌ Vulnerabilities exceed accepted baseline - deployment blocked"
+          echo "Run: npm audit to see detailed report"
           exit 1
 
       - name: ⛔ Fail if linting failed
