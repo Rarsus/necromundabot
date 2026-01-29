@@ -19,8 +19,11 @@
 - ✅ `fix: resolve string comparison bug in baseline checks`
 - ✅ `docs: update API documentation`
 - ✅ `chore: upgrade dependencies to latest versions`
+- ✅ `[WIP] feat: work in progress feature` (WIP prefix stripped during validation)
 - ❌ `Add user authentication system` (missing prefix)
 - ❌ `Fix string comparison bug` (missing colon after prefix)
+
+**Note:** WIP/Draft prefixes (`[WIP]`, `[Draft]`, `WIP:`, `Draft:`, `[DO NOT MERGE]`) are automatically stripped during validation.
 
 ---
 

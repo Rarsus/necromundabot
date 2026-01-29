@@ -15,6 +15,24 @@ All pull requests in this repository **MUST** use Conventional Commits format fo
 - **Space**: Required after the colon
 - **Description**: Clear, concise description in lowercase
 
+### 🚧 WIP/Draft Prefixes (Optional)
+
+You can prefix your PR title with WIP/Draft markers during development. These are automatically stripped during validation:
+
+**Allowed WIP/Draft prefixes:**
+- `[WIP] ` - Example: `[WIP] feat: add new command`
+- `[Draft] ` - Example: `[Draft] fix: resolve timeout`
+- `[DO NOT MERGE] ` - Example: `[DO NOT MERGE] feat: experimental feature`
+- `WIP: ` - Example: `WIP: docs: update guide`
+- `Draft: ` - Example: `Draft: refactor: cleanup code`
+
+**How it works:**
+1. PR title: `[WIP] feat: add gang creation`
+2. Validation strips `[WIP] ` prefix
+3. Validates: `feat: add gang creation` ✅
+
+**Note**: When you're ready to merge, remove the WIP/Draft prefix to keep the title clean.
+
 ## 📋 Allowed Type Prefixes
 
 | Prefix | Use Case | Example |
@@ -40,6 +58,9 @@ All pull requests in this repository **MUST** use Conventional Commits format fo
 ✅ chore: PHASE-04.0.2 - upgrade glob 7.x → 9.x
 ✅ test: add integration tests for campaign commands
 ✅ refactor: extract shared validation logic to utils
+✅ [WIP] feat: add experimental feature (WIP prefix will be stripped)
+✅ [Draft] fix: work in progress fix (Draft prefix will be stripped)
+✅ WIP: docs: documentation update (WIP: prefix will be stripped)
 ```
 
 ## ❌ Bad Examples
