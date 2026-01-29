@@ -1,6 +1,6 @@
 {
   "name": "@rarsus/necrobot-core",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "NecroBot core engine, services, middleware, and event handlers",
   "main": "src/index.js",
   "repository": {
