@@ -33,7 +33,7 @@
   "author": "NecromundaBot Team",
   "license": "MIT",
   "dependencies": {
-    "better-sqlite3": "^9.2.2",
+    "better-sqlite3": "^12.6.2",
     "dotenv": "^17.2.3"
   },
   "devDependencies": {
