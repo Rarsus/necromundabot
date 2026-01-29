@@ -60,7 +60,7 @@ jobs:
         continue-on-error: true
 
       - name: ❌ Fail if baseline exceeded
-        if: fromJSON(steps.audit.outputs.total) > fromJSON(steps.audit.outputs.baseline) || fromJSON(steps.audit.outputs.critical) > 0
+        if: (steps.audit.outputs.baseline && fromJSON(steps.audit.outputs.total) > fromJSON(steps.audit.outputs.baseline)) || fromJSON(steps.audit.outputs.critical) > 0
         run: |
           echo "❌ Release blocked: Audit baseline exceeded or critical vulnerabilities found"
           exit 1
