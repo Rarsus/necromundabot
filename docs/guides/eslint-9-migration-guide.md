@@ -298,8 +298,8 @@ A: Open an issue on GitHub or submit a PR with a fix to the appropriate `eslint.
 
 **Project-Specific:**
 
-- [Completion Report](./PHASE-04.0.1-ESLINT-UPGRADE-COMPLETE.md)
-- [Copilot Instructions](./.github/copilot-instructions.md)
+- [Completion Report](../../project-docs/PHASE-04.0/PHASE-04.0.1-ESLINT-UPGRADE-COMPLETE.md)
+- [Copilot Instructions](../../.github/copilot-instructions.md)
 
 ---
 

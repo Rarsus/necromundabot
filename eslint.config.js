@@ -21,9 +21,9 @@ module.exports = [
   // Base recommended config
   js.configs.recommended,
 
-  // Main configuration for all JS files
+  // Main configuration for root-level and script files
   {
-    files: ['**/*.js'],
+    files: ['*.js', 'scripts/**/*.js', 'src/**/*.js'],
     languageOptions: {
       ecmaVersion: 2021,
       sourceType: 'module',
@@ -77,7 +77,7 @@ module.exports = [
 
   // Test files configuration
   {
-    files: ['**/*.test.js', '**/tests/**/*.js'],
+    files: ['**/*.test.js', 'tests/**/*.js'],
     languageOptions: {
       globals: {
         ...globals.node,
