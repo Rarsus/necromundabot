@@ -11,9 +11,7 @@ module.exports = {
   description: 'Shows all available commands',
 
   // Command data (for slash command registration)
-  data: new SlashCommandBuilder()
-    .setName('help')
-    .setDescription('Shows all available commands'),
+  data: new SlashCommandBuilder().setName('help').setDescription('Shows all available commands'),
 
   /**
    * Execute the slash command interaction
@@ -39,7 +37,7 @@ module.exports = {
     // Add commands organized by category
     for (const [category, commands] of Object.entries(commandsByCategory)) {
       const commandList = commands.join(', ');
-      const formattedCommands = '`/' + commandList.replace(/,/g, '` `/') + '`';
+      const formattedCommands = `\`/${commandList.replace(/,/g, '` `/')}\``;
       embed.addFields({
         name: `**${category}**`,
         value: formattedCommands,

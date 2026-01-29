@@ -4,6 +4,7 @@
  */
 
 const assert = require('assert');
+
 const CommandBase = require('../../src/core/CommandBase');
 
 describe('CommandBase', () => {

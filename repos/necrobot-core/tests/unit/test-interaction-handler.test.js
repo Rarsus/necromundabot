@@ -4,6 +4,7 @@
  */
 
 const assert = require('assert');
+
 const InteractionHandler = require('../../src/core/InteractionHandler');
 
 describe('InteractionHandler', () => {
@@ -307,7 +308,7 @@ describe('InteractionHandler', () => {
 
   describe('interaction routing', () => {
     it('should route commands by exact name', async () => {
-      let routedCommands = [];
+      const routedCommands = [];
       mockCommandLoader.executeCommand = async (name) => {
         routedCommands.push(name);
       };

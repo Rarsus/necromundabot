@@ -6,7 +6,9 @@
 const assert = require('assert');
 const path = require('path');
 const fs = require('fs');
+
 const { Collection } = require('discord.js');
+
 const CommandLoader = require('../../src/core/CommandLoader');
 
 describe('CommandLoader', () => {

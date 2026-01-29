@@ -4,6 +4,7 @@
  */
 
 const assert = require('assert');
+
 const CommandRegistrationHandler = require('../../src/core/CommandRegistrationHandler');
 
 describe('CommandRegistrationHandler', () => {
