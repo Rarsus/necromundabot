@@ -26,7 +26,7 @@ function extractLinks(content) {
   while ((match = linkRegex.exec(content)) !== null) {
     const url = match[2];
     // Skip template variables and placeholders
-    if (!IGNORED_PATTERNS.some(pattern => url.includes(pattern))) {
+    if (!IGNORED_PATTERNS.some((pattern) => url.includes(pattern))) {
       links.push(url);
     }
   }
@@ -46,7 +46,7 @@ function isValidUrl(url) {
   }
 
   // Check if it's a valid protocol
-  return VALID_PROTOCOLS.some(protocol => url.startsWith(protocol));
+  return VALID_PROTOCOLS.some((protocol) => url.startsWith(protocol));
 }
 
 /**
@@ -56,20 +56,20 @@ function validateLinks() {
   const docDirs = ['docs', 'project-docs'];
   let brokenLinks = [];
 
-  docDirs.forEach(dir => {
+  docDirs.forEach((dir) => {
     if (!fs.existsSync(dir)) return;
 
     // Find all markdown files
     const files = execSync(`find ${dir} -name "*.md"`, { encoding: 'utf8' })
       .trim()
       .split('\n')
-      .filter(f => f);
+      .filter((f) => f);
 
-    files.forEach(file => {
+    files.forEach((file) => {
       const content = fs.readFileSync(file, 'utf8');
       const links = extractLinks(content);
 
-      links.forEach(link => {
+      links.forEach((link) => {
         if (!isValidUrl(link)) {
           brokenLinks.push({ file, link });
         }
