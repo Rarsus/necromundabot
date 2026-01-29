@@ -17,8 +17,8 @@ RUN apk add --no-cache python3 make g++
 COPY package*.json ./
 
 # Install root dependencies only (faster layer caching)
-# Set HUSKY=0 to skip Husky installation (not needed in Docker)
-RUN HUSKY=0 npm ci --only=production && HUSKY=0 npm ci --only=development
+# Use --ignore-scripts to prevent postinstall hooks (like Husky) from running in Docker
+RUN npm ci --only=production --ignore-scripts && npm ci --only=development --ignore-scripts
 
 # Copy workspace packages
 COPY repos ./repos
