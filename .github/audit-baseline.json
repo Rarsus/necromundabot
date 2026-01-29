@@ -5,9 +5,10 @@
   "baslineExpiresAt": "2026-08-31",
   "nextReviewDate": "2026-04-01",
   "criticalExemptionExpires": "2026-05-01",
-  "totalVulnerabilities": 13,
+  "totalVulnerabilities": 8,
+  "baseline": 8,
   "acceptedBy": "Olav & Copilot",
-  "acceptanceReason": "Vulnerabilities in trusted internal contexts, build-only dependencies, or with fix paths blocked by missing stable releases. All exemptions are time-bound with hard expiration dates.",
+  "acceptanceReason": "Vulnerabilities in trusted internal contexts, build-only dependencies, or with fix paths blocked by missing stable releases. All exemptions are time-bound with hard expiration dates. Current baseline reflects build-only dependencies (eslint, Next.js) and discord.js transitive dependencies pending v15 migration.",
   "vulnerabilities": [
     {
       "id": "undici-decompression-1",
