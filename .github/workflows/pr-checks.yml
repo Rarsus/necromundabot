@@ -155,17 +155,37 @@ jobs:
               'merge:'
             ];
 
+            // Strip common WIP/Draft prefixes before validation
+            let titleToValidate = pr.title;
+            const wipPrefixes = [
+              /^\[WIP\]\s*/i,
+              /^\[Draft\]\s*/i,
+              /^\[DO NOT MERGE\]\s*/i,
+              /^WIP:\s*/i,
+              /^Draft:\s*/i
+            ];
+            
+            for (const prefix of wipPrefixes) {
+              titleToValidate = titleToValidate.replace(prefix, '');
+            }
+
             const hasValidPrefix = validPrefixes.some(prefix =>
-              pr.title.toLowerCase().startsWith(prefix)
+              titleToValidate.toLowerCase().startsWith(prefix)
             );
 
             if (!hasValidPrefix) {
               core.setFailed(
                 `❌ PR title must start with one of: ${validPrefixes.join(', ')}\n` +
-                `Current: "${pr.title}"`
+                `Current: "${pr.title}"\n` +
+                `After stripping WIP/Draft prefixes: "${titleToValidate}"\n` +
+                `Tip: WIP/Draft prefixes like [WIP], [Draft], WIP:, Draft: are automatically stripped`
               );
             } else {
-              core.notice(`✅ PR title format valid: "${pr.title}"`);
+              if (titleToValidate !== pr.title) {
+                core.notice(`✅ PR title format valid after stripping WIP prefix: "${titleToValidate}"`);
+              } else {
+                core.notice(`✅ PR title format valid: "${pr.title}"`);
+              }
             }
 
       - name: 📏 Check PR size
@@ -380,14 +400,29 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const lintPassed = '${{ needs.lint-and-format.result }}' === 'success';
-            const prPassed = '${{ needs.pr-validation.result }}' !== 'failure';
-            const depPassed = '${{ needs.dependency-check.result }}' === 'success';
+            const lintResult = '${{ needs.lint-and-format.result }}';
+            const prResult = '${{ needs.pr-validation.result }}';
+            const depResult = '${{ needs.dependency-check.result }}';
+            
+            // Treat 'skipped' as passing since jobs can be intentionally skipped (e.g., draft PRs)
+            const lintPassed = lintResult === 'success' || lintResult === 'skipped';
+            const prPassed = prResult !== 'failure';
+            const depPassed = depResult === 'success' || depResult === 'skipped';
 
             let message = '## ✅ PR Checks Summary\n\n';
-            message += `${lintPassed ? '✅' : '❌'} Code Quality\n`;
+            message += `${lintPassed ? '✅' : '❌'} Code Quality`;
+            if (lintResult === 'skipped') {
+              message += ' (skipped - draft PR)\n';
+            } else {
+              message += '\n';
+            }
             message += `${prPassed ? '✅' : '⚠️'} PR Structure\n`;
-            message += `${depPassed ? '✅' : '❌'} Dependencies\n`;
+            message += `${depPassed ? '✅' : '❌'} Dependencies`;
+            if (depResult === 'skipped') {
+              message += ' (skipped)\n';
+            } else {
+              message += '\n';
+            }
 
             if (!lintPassed || !depPassed) {
               core.setFailed('PR checks did not pass');

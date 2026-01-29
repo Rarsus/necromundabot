@@ -4,14 +4,26 @@
 > For detailed scenarios and patterns, see subdirectories below.
 > **Infrastructure Status:** GitHub Actions publishing pipeline ✅ operational with git submodule support
 
-## 🚨 Four Critical Enforced Requirements
+## 🚨 Five Critical Enforced Requirements
 
-1. **Documentation Storage & Naming** → See [patterns/DOCUMENTATION.md](copilot-patterns/DOCUMENTATION.md)
-2. **Test-Driven Development (TDD)** → See [patterns/TDD-WORKFLOW.md](copilot-patterns/TDD-WORKFLOW.md)
-3. **Command Structure Validation** → See [patterns/COMMAND-STRUCTURE.md](copilot-patterns/COMMAND-STRUCTURE.md)
-4. **Workspace Aware Imports** → See [patterns/SERVICE-LAYER.md](copilot-patterns/SERVICE-LAYER.md)
+1. **PR Title Format (Conventional Commits)** → Must start with: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `perf:`, `test:`, `chore:`, `ci:`, `revert:`, or `merge:`
+2. **Documentation Storage & Naming** → See [patterns/DOCUMENTATION.md](copilot-patterns/DOCUMENTATION.md)
+3. **Test-Driven Development (TDD)** → See [patterns/TDD-WORKFLOW.md](copilot-patterns/TDD-WORKFLOW.md)
+4. **Command Structure Validation** → See [patterns/COMMAND-STRUCTURE.md](copilot-patterns/COMMAND-STRUCTURE.md)
+5. **Workspace Aware Imports** → See [patterns/SERVICE-LAYER.md](copilot-patterns/SERVICE-LAYER.md)
 
 **These are NON-NEGOTIABLE. Violations result in PR rejection.**
+
+### PR Title Examples ✅
+- ✅ `feat: add user authentication system`
+- ✅ `fix: resolve string comparison bug in baseline checks`
+- ✅ `docs: update API documentation`
+- ✅ `chore: upgrade dependencies to latest versions`
+- ✅ `[WIP] feat: work in progress feature` (WIP prefix stripped during validation)
+- ❌ `Add user authentication system` (missing prefix)
+- ❌ `Fix string comparison bug` (missing colon after prefix)
+
+**Note:** WIP/Draft prefixes (`[WIP]`, `[Draft]`, `WIP:`, `Draft:`, `[DO NOT MERGE]`) are automatically stripped during validation.
 
 ---
 
@@ -78,6 +90,7 @@ All scenarios enforce these patterns - referenced from:
 
 | Pattern               | File                                                                   | Use When                               |
 | --------------------- | ---------------------------------------------------------------------- | -------------------------------------- |
+| **PR Title Format**   | [patterns/PR-TITLE-FORMAT.md](copilot-patterns/PR-TITLE-FORMAT.md)     | Creating ANY pull request (REQUIRED!)  |
 | **TDD Workflow**      | [patterns/TDD-WORKFLOW.md](copilot-patterns/TDD-WORKFLOW.md)           | Writing any code (tests first, always) |
 | **Command Structure** | [patterns/COMMAND-STRUCTURE.md](copilot-patterns/COMMAND-STRUCTURE.md) | Creating/validating Discord commands   |
 | **Service Layer**     | [patterns/SERVICE-LAYER.md](copilot-patterns/SERVICE-LAYER.md)         | Working with dependencies & imports    |

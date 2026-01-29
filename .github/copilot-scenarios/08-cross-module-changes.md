@@ -349,8 +349,26 @@ git commit -m "refactor(commands): Use new confirmation helper
 - All tests passing"
 ```
 
+## PR Title Format Reminder
+
+When creating a pull request for cross-module changes, use appropriate format:
+
+```
+refactor: <description>  # For restructuring across modules
+feat: <description>  # For new features spanning modules
+fix: <description>  # For fixes affecting multiple modules
+```
+
+Examples:
+- ✅ `refactor: consolidate database access across modules`
+- ✅ `feat: add shared validation utilities`
+- ✅ `fix: resolve circular dependency in service imports`
+
+See [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) for complete details.
+
 ## See Also
 
 - [SERVICE-LAYER.md](../copilot-patterns/SERVICE-LAYER.md) - Workspace dependencies & imports
 - [TDD-WORKFLOW.md](../copilot-patterns/TDD-WORKFLOW.md) - Testing workflow
 - [TESTING-PATTERNS.md](../copilot-patterns/TESTING-PATTERNS.md) - Unit & integration testing
+- [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) - PR title requirements

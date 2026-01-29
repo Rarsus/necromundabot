@@ -198,7 +198,23 @@ npm ci
 **Issue:** Different node_modules in Docker vs local  
 **Solution:** Use `npm ci` not `npm install` in Dockerfile
 
+## PR Title Format Reminder
+
+When creating a pull request for dependency updates, use the format:
+
+```
+chore: <description of the dependency update>
+```
+
+Examples:
+- ✅ `chore: upgrade Discord.js to v15`
+- ✅ `chore: update all npm dependencies`
+- ✅ `chore: PHASE-04.0.2 - upgrade glob 7.x → 9.x`
+
+See [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) for complete details.
+
 ## See Also
 
 - [SERVICE-LAYER.md](../copilot-patterns/SERVICE-LAYER.md) - Workspace versions
 - [TDD-WORKFLOW.md](../copilot-patterns/TDD-WORKFLOW.md) - Testing new code
+- [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) - PR title requirements

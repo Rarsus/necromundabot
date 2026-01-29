@@ -286,7 +286,27 @@ git commit -m "chore: Optimize Docker build performance
 
 ## See Also
 
+## PR Title Format Reminder
+
+When creating a pull request for Docker/infrastructure changes, use appropriate format:
+
+```
+ci: <description>  # For CI/CD or build infrastructure
+chore: <description>  # For Docker configuration updates
+feat: <description>  # For new infrastructure features
+```
+
+Examples:
+- ✅ `ci: update GitHub Actions workflow`
+- ✅ `chore: optimize Docker build with multi-stage builds`
+- ✅ `feat: add health check to docker-compose`
+
+See [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) for complete details.
+
+## See Also
+
 - [SERVICE-LAYER.md](../copilot-patterns/SERVICE-LAYER.md) - Docker optimization rules
 - [TDD-WORKFLOW.md](../copilot-patterns/TDD-WORKFLOW.md) - Test before Docker deployment
+- [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) - PR title requirements
 - Docker documentation: https://docs.docker.com/
 - Docker Compose documentation: https://docs.docker.com/compose/

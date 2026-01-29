@@ -232,8 +232,26 @@ const schema = {
 - [ ] No ESLint errors
 - [ ] All workspace tests pass
 
+## PR Title Format Reminder
+
+When creating a pull request for database/service changes, use appropriate format:
+
+```
+feat: <description>  # For new services/functionality
+refactor: <description>  # For restructuring existing services
+fix: <description>  # For fixing service bugs
+```
+
+Examples:
+- ✅ `feat: add GangService for gang management`
+- ✅ `refactor: extract database logic to service layer`
+- ✅ `fix: resolve transaction rollback issue`
+
+See [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) for complete details.
+
 ## See Also
 
 - [SERVICE-LAYER.md](../copilot-patterns/SERVICE-LAYER.md) - Import/export patterns
 - [TESTING-PATTERNS.md](../copilot-patterns/TESTING-PATTERNS.md) - Service testing
 - [ERROR-HANDLING.md](../copilot-patterns/ERROR-HANDLING.md) - Error handling
+- [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) - PR title requirements

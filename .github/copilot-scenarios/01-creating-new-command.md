@@ -244,9 +244,27 @@ Before committing:
 ❌ **Mistake:** Method named `execute()` instead of `executeInteraction()`  
 ✅ **Fix:** Must be exactly `executeInteraction`
 
+## PR Title Format Reminder
+
+When creating a pull request for a new command, use the format:
+
+```
+feat: <concise description of the new command>
+```
+
+Examples:
+- ✅ `feat: add /roll command for dice rolling`
+- ✅ `feat: implement gang creation command`
+- ✅ `feat: add quote search functionality`
+- ❌ `Add roll command` (missing prefix)
+- ❌ `feat add command` (missing colon)
+
+See [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) for complete details.
+
 ## Need Help?
 
 - See [COMMAND-STRUCTURE.md](../copilot-patterns/COMMAND-STRUCTURE.md) for validation details
 - See [TDD-WORKFLOW.md](../copilot-patterns/TDD-WORKFLOW.md) for testing patterns
 - See [TESTING-PATTERNS.md](../copilot-patterns/TESTING-PATTERNS.md) for advanced testing
+- See [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) for PR title requirements
 - Check existing commands: `repos/necrobot-commands/src/commands/misc/`
