@@ -1,14 +1,10 @@
 name: Versioning - Semantic Release Management
 
 on:
-  push:
+  workflow_run:
+    workflows: ['Testing - Unit & Integration']
+    types: [completed]
     branches: [main]
-    paths-ignore:
-      - '.github/workflows/**'
-      - 'README.md'
-      - 'docs/**'
-      - 'docs/QRC/**'
-      - 'project-docs/**'
   workflow_dispatch:
     inputs:
       release_type:
@@ -34,7 +30,9 @@ jobs:
   analyze-commits:
     name: "Analyze Commits for Version"
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
 
     outputs:
       current-version: ${{ steps.version.outputs.current-version }}
