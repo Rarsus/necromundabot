@@ -57,9 +57,24 @@ jobs:
         id: audit
         continue-on-error: true
         run: |
+          set +e  # Don't fail on npm audit exit code
           npm audit --audit-level=critical 2>&1 | tee audit.txt
-          CRITICAL=$(grep -c "critical" audit.txt || echo "0")
-          echo "critical=${CRITICAL}" >> $GITHUB_OUTPUT
+          AUDIT_EXIT=$?
+          
+          # Check for critical vulnerabilities (exit code 1 means vulnerabilities found)
+          if [ $AUDIT_EXIT -eq 0 ]; then
+            CRITICAL="0"
+          else
+            # Count the number of critical vulnerabilities mentioned
+            CRITICAL=$(grep -c "critical" audit.txt 2>/dev/null || echo "0")
+            # If grep returned 0, but audit failed, assume there are critical issues
+            if [ "$CRITICAL" = "0" ]; then
+              CRITICAL="1"
+            fi
+          fi
+          
+          echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+          set -e
 
       - name: ⛔ Fail if critical security issues
         if: steps.audit.outputs.critical > 0
