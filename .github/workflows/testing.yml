@@ -32,15 +32,14 @@ jobs:
           cache: 'npm'
           cache-dependency-path: '**/package-lock.json'
 
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
       - name: ✅ Validate Node.js version
         run: |
           echo "🔍 Checking Node.js version..."
           node --version
           npm --version
-
-          # Validate version meets requirements
-          REQUIRED_NODE=">=22.0.0"
-          CURRENT_NODE=$(node -v | cut -d'v' -f2)
 
           if npm run validate:node; then
             echo "✅ Node.js version validated"
@@ -48,9 +47,6 @@ jobs:
             echo "❌ Node.js version does not meet requirements"
             exit 1
           fi
-
-      - name: 📚 Install dependencies
-        run: npm ci --workspaces
 
       - name: 🧪 Run unit tests
         id: test
