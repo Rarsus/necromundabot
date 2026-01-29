@@ -80,7 +80,7 @@ echo -e "\n${GREEN}✅ Creating release for version $NEW_VERSION${NC}\n"
 
 # Update package.json version
 echo -e "${YELLOW}1. Updating package.json...${NC}"
-sed -i.bak "s/\"version\": \"$CURRENT_VERSION\"/\"version\": \"$NEW_VERSION\"/" "$PACKAGE_JSON"
+sed -i .bak "s/\"version\": \"$CURRENT_VERSION\"/\"version\": \"$NEW_VERSION\"/" "$PACKAGE_JSON"
 rm -f "${PACKAGE_JSON}.bak"
 echo -e "${GREEN}   ✓ Version updated to $NEW_VERSION${NC}"
 

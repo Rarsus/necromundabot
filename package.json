@@ -41,6 +41,11 @@
     "workspaces:validate": "node scripts/validate-workspaces.js",
     "version:sync": "node scripts/sync-package-versions.js",
     "version:sync:set": "node scripts/sync-package-versions.js",
+    "analyze:version": "node scripts/analyze-version-impact.js",
+    "verify:packages": "node scripts/verify-package-versions.js",
+    "sync:vulnerabilities": "node scripts/sync-vulnerability-baseline.js",
+    "audit:compare": "bash scripts/compare-audit-against-baseline.sh",
+    "release": "bash scripts/create-release.sh",
     "prepare": "husky install"
   },
   "keywords": [
