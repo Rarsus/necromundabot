@@ -278,8 +278,24 @@ git commit -m "refactor: Extract QuoteFormatter class
 - Closes related technical debt"
 ```
 
+## PR Title Format Reminder
+
+When creating a pull request for refactoring, use the format:
+
+```
+refactor: <description of what was refactored>
+```
+
+Examples:
+- ✅ `refactor: extract database logic to service layer`
+- ✅ `refactor: consolidate error handling in commands`
+- ✅ `refactor: simplify gang creation workflow`
+
+See [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) for complete details.
+
 ## See Also
 
 - [TDD-WORKFLOW.md](../copilot-patterns/TDD-WORKFLOW.md) - REFACTOR phase details
 - [TESTING-PATTERNS.md](../copilot-patterns/TESTING-PATTERNS.md) - Ensuring test coverage
 - [COMMAND-STRUCTURE.md](../copilot-patterns/COMMAND-STRUCTURE.md) - Structure patterns
+- [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) - PR title requirements
