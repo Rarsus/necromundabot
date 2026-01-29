@@ -39,6 +39,8 @@
     "workspaces:list": "npm list --workspaces --depth=0",
     "workspaces:status": "node scripts/workspaces-status.js",
     "workspaces:validate": "node scripts/validate-workspaces.js",
+    "version:sync": "node scripts/sync-package-versions.js",
+    "version:sync:set": "node scripts/sync-package-versions.js",
     "prepare": "husky install"
   },
   "keywords": [

@@ -1,6 +1,6 @@
 {
   "name": "@rarsus/necrobot-utils",
-  "version": "0.2.4",
+  "version": "0.6.0",
   "description": "NecroBot shared utilities, database layer, services, and helpers",
   "main": "src/index.js",
   "repository": {

@@ -1,6 +1,6 @@
 {
   "name": "@rarsus/necrobot-dashboard",
-  "version": "0.2.3",
+  "version": "0.6.0",
   "description": "NecroBot web dashboard and UI components",
   "main": "src/index.js",
   "publishConfig": {

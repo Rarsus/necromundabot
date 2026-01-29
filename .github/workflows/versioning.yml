@@ -298,6 +298,13 @@ jobs:
             echo "ERROR: Version mismatch! Expected $NEW_VERSION but got $UPDATED_VERSION"
             exit 1
           fi
+
+      - name: 🔄 Sync all package versions to root (generic versioning)
+        run: |
+          echo "📦 Syncing all submodule packages to root version..."
+          node scripts/sync-package-versions.js
+          echo ""
+          echo "✅ All packages synced to version: $(grep '"version"' package.json | head -1 | awk -F'"' '{print $4}')"
           
           echo "✅ Version successfully updated to $UPDATED_VERSION"
 
@@ -336,7 +343,10 @@ jobs:
           if [ -f "package-lock.json" ]; then
             git add package-lock.json
           fi
-          if git commit -m "chore: release version $NEW_VERSION [skip ci]"; then
+          # Also stage all synced submodule package.json files
+          git add repos/*/package.json 2>/dev/null || true
+          
+          if git commit -m "chore: release version $NEW_VERSION - sync all packages [skip ci]"; then
             echo "✓ Commit created successfully"
             COMMIT_CREATED=true
           else
