@@ -25,6 +25,10 @@
   - Integration with Copilot instructions
   - Team coordination tips
 
+#### Monorepo & Workspace Guides
+
+- [Monorepo FAQ](./user-guides/monorepo-faq.md) - Common questions about monorepo setup and usage
+
 #### Setup Guides
 
 - [Docker Setup](./user-guides/docker-setup.md) - How to set up and run the bot with Docker
@@ -51,11 +55,12 @@
 
 - [Docker Troubleshooting](./guides/DOCKER-TROUBLESHOOTING.md) - Solutions to Docker-related problems
 - [Release Process](./guides/RELEASE-PROCESS.md) - How to create releases
-- [GitHub Packages Publishing](./guides/GITHUB-PACKAGES-PUBLISHING.md) - Publishing to GitHub Packages registry
+- [GitHub Packages Publishing](./guides/github-packages-publishing.md) - Publishing to GitHub Packages registry
 
 #### Copilot & AI Tools
 
 - [Using Copilot Instructions](./guides/using-copilot-instructions.md) - Guide to project-specific Copilot patterns
+- [Copilot Reference](./reference/copilot-reference.md) - Complete reference for Copilot commands and patterns
 
 ### Best Practices
 

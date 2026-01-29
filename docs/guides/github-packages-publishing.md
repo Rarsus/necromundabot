@@ -3,7 +3,7 @@
 **Status:** ✅ Operational  
 **Last Updated:** January 26, 2026  
 **Package:** @rarsus/necrobot-utils  
-**Registry:** GitHub Package Manager (npm.pkg.github.com)  
+**Registry:** GitHub Package Manager (npm.pkg.github.com)
 
 ## Overview
 
@@ -23,7 +23,7 @@ Every time a commit is pushed to the `main` branch:
 ### Trigger Conditions
 
 - ✅ Commits with `feat:` → Publishes **minor** version bump
-- ✅ Commits with `fix:` → Publishes **patch** version bump  
+- ✅ Commits with `fix:` → Publishes **patch** version bump
 - ✅ Commits with `BREAKING CHANGE:` → Publishes **major** version bump
 - ✅ Manual workflow with specified release type
 
@@ -61,17 +61,20 @@ Skipped if only docs/workflows changed.
 ### Setup
 
 1. Create `.npmrc`:
+
 ```
 @rarsus:registry=https://npm.pkg.github.com
 //npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
 ```
 
 2. Install:
+
 ```bash
 npm install @rarsus/necrobot-utils
 ```
 
 3. Use in code:
+
 ```javascript
 const { DatabaseService, sendSuccess } = require('@rarsus/necrobot-utils');
 ```
@@ -80,8 +83,8 @@ const { DatabaseService, sendSuccess } = require('@rarsus/necrobot-utils');
 
 ```yaml
 permissions:
-  contents: write    # For commits and releases
-  packages: write    # For publishing to GPM
+  contents: write # For commits and releases
+  packages: write # For publishing to GPM
 ```
 
 ## Latest Release
@@ -98,7 +101,7 @@ Current version: **0.1.0** ✅ Published
 # Patch (0.1.0 → 0.1.1)
 git commit -m "fix: resolve database timeout"
 
-# Minor (0.1.0 → 0.2.0)  
+# Minor (0.1.0 → 0.2.0)
 git commit -m "feat: add cache service"
 
 # Major (0.1.0 → 1.0.0)
@@ -124,6 +127,7 @@ This is expected - each version publishes once. Make sure commits use convention
 ### "404 Not found"
 
 Verify:
+
 - Token has `read:packages` permission
 - .npmrc has correct registry
 - Token is not expired
