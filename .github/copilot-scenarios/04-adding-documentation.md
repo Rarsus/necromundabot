@@ -224,8 +224,26 @@ git commit -m "docs: Add user guide for creating commands
 ❌ **Mistake:** Using absolute paths in links  
 ✅ **Fix:** Use relative paths: `../guides/example.md`
 
+## PR Title Format Reminder
+
+When creating a pull request for documentation changes, use the format:
+
+```
+docs: <concise description of the documentation change>
+```
+
+Examples:
+- ✅ `docs: update API reference for commands`
+- ✅ `docs: add contributing guidelines`
+- ✅ `docs: fix typos in README`
+- ❌ `Update documentation` (missing prefix)
+- ❌ `docs update API` (missing colon)
+
+See [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) for complete details.
+
 ## Need Help?
 
 - See [DOCUMENTATION.md](../copilot-patterns/DOCUMENTATION.md) for strict rules
 - See [DOCUMENT-NAMING-CONVENTION.md](../../DOCUMENT-NAMING-CONVENTION.md) for patterns
+- See [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) for PR title requirements
 - Check [DOCUMENTATION-INDEX.md](../../DOCUMENTATION-INDEX.md) for examples

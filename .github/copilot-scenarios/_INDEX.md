@@ -2,6 +2,22 @@
 
 Quick reference for all development scenarios. Pick your scenario:
 
+## 🚨 IMPORTANT: PR Title Format
+
+**BEFORE creating a PR, ensure your title follows the format:** `<type>: <description>`
+
+Valid types: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `perf:`, `test:`, `chore:`, `ci:`, `revert:`, `merge:`
+
+See [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) for complete details.
+
+Examples:
+- ✅ `feat: add gang creation command`
+- ✅ `fix: resolve database timeout issue`
+- ✅ `docs: update API reference`
+- ❌ `Add gang creation command` (missing prefix)
+
+---
+
 ## By Task Type
 
 ### Adding New Code
@@ -46,6 +62,7 @@ All scenarios enforce these patterns - reference them for details:
 
 | Pattern | File | When To Use |
 |---------|------|------------|
+| **PR Title Format** | [../copilot-patterns/PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) | Creating ANY pull request (REQUIRED!) |
 | **Documentation** | [../copilot-patterns/DOCUMENTATION.md](../copilot-patterns/DOCUMENTATION.md) | Creating any docs (naming rules!) |
 | **TDD Workflow** | [../copilot-patterns/TDD-WORKFLOW.md](../copilot-patterns/TDD-WORKFLOW.md) | Writing ANY code (tests first!) |
 | **Command Structure** | [../copilot-patterns/COMMAND-STRUCTURE.md](../copilot-patterns/COMMAND-STRUCTURE.md) | Creating/validating commands |
@@ -55,6 +72,7 @@ All scenarios enforce these patterns - reference them for details:
 
 ## Quick Facts
 
+- 🎯 **PR titles:** Must use format `type: description` (see [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md))
 - 📦 **4 npm workspaces:** core, utils, commands, dashboard
 - 🧪 **TDD mandatory:** Tests before code, always
 - 📁 **Docs rules:** Root = UPPERCASE, docs/ = lowercase-with-hyphens, project-docs/ = PHASE-X

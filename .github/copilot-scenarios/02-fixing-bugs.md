@@ -132,9 +132,28 @@ describe('Bug: Command fails to save data', () => {
 - [ ] No regressions in other tests
 - [ ] Linter passes
 - [ ] Commit explains bug and fix
+- [ ] **PR title uses `fix:` prefix** (e.g., `fix: resolve database timeout issue`)
+
+## PR Title Format Reminder
+
+When creating a pull request for a bug fix, use the format:
+
+```
+fix: <concise description of what was fixed>
+```
+
+Examples:
+- ✅ `fix: resolve database connection timeout`
+- ✅ `fix: correct permission check in gang delete`
+- ✅ `fix: prevent crash on empty string input`
+- ❌ `Fix database connection timeout` (missing colon)
+- ❌ `Fixed database timeout` (wrong tense)
+
+See [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) for complete details.
 
 ## See Also
 
 - [TDD-WORKFLOW.md](../copilot-patterns/TDD-WORKFLOW.md) - Testing patterns
 - [ERROR-HANDLING.md](../copilot-patterns/ERROR-HANDLING.md) - Error handling patterns
 - [TESTING-PATTERNS.md](../copilot-patterns/TESTING-PATTERNS.md) - Advanced testing
+- [PR-TITLE-FORMAT.md](../copilot-patterns/PR-TITLE-FORMAT.md) - PR title requirements
