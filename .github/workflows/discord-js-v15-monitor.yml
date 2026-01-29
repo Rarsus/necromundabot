@@ -80,7 +80,7 @@ jobs:
           echo "URL: ${{ steps.milestone.outputs.milestone_url }}"
 
       - name: 🎉 Create issue when milestone is complete
-        if: steps.milestone.outputs.state == 'closed' || steps.milestone.outputs.percent_complete >= 100
+        if: steps.milestone.outputs.state == 'closed' || fromJSON(steps.milestone.outputs.percent_complete) >= 100
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -159,7 +159,7 @@ jobs:
             console.log('✅ Created issue to proceed with PHASE-03.1.2');
 
       - name: 📝 Update progress comment
-        if: steps.milestone.outputs.state == 'open' && steps.milestone.outputs.percent_complete < 100
+        if: steps.milestone.outputs.state == 'open' && fromJSON(steps.milestone.outputs.percent_complete) < 100
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -253,14 +253,14 @@ jobs:
             }
 
       - name: 📧 Notify on milestone completion
-        if: steps.milestone.outputs.state == 'closed' || steps.milestone.outputs.percent_complete >= 100
+        if: steps.milestone.outputs.state == 'closed' || fromJSON(steps.milestone.outputs.percent_complete) >= 100
         run: |
           echo "🎉 discord.js v15 milestone is complete!"
           echo "✅ Ready to proceed with PHASE-03.1.2"
           echo "📝 Issue created to track next phase"
 
       - name: ⚠️ Notify on delays
-        if: steps.milestone.outputs.percent_complete < 90
+        if: fromJSON(steps.milestone.outputs.percent_complete) < 90
         run: |
           echo "⏳ discord.js v15 is at ${{ steps.milestone.outputs.percent_complete }}% completion"
           echo "📊 ${{ steps.milestone.outputs.open_issues }} issues remaining"
