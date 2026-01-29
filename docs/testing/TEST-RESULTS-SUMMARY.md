@@ -25,13 +25,13 @@ Code Coverage:        ~65% average (fair)
 
 ## Test Results by Module
 
-| Module | Tests | Pass Rate | Status | Key Issue |
-|--------|-------|-----------|--------|-----------|
-| **necrobot-utils** | 25 | 100% | ✅ Excellent | — |
-| **necrobot-core** | 84 | 97.6% | ⚠️ Good | 2 version comparison test failures |
-| **necrobot-commands** | 36 | 100% | ✅ Excellent | Low code coverage (22%) |
-| **necrobot-dashboard** | 1 | 100% | ✅ Good | Placeholder only |
-| **Root (Scripts)** | 39 | 100% | ✅ Excellent | — |
+| Module                 | Tests | Pass Rate | Status       | Key Issue                          |
+| ---------------------- | ----- | --------- | ------------ | ---------------------------------- |
+| **necrobot-utils**     | 25    | 100%      | ✅ Excellent | —                                  |
+| **necrobot-core**      | 84    | 97.6%     | ⚠️ Good      | 2 version comparison test failures |
+| **necrobot-commands**  | 36    | 100%      | ✅ Excellent | Low code coverage (22%)            |
+| **necrobot-dashboard** | 1     | 100%      | ✅ Good      | Placeholder only                   |
+| **Root (Scripts)**     | 39    | 100%      | ✅ Excellent | —                                  |
 
 ---
 
@@ -50,6 +50,7 @@ Code Coverage:        ~65% average (fair)
 ### 🔴 CRITICAL (Fix immediately)
 
 **2 Test Failures in necrobot-core/test-create-release.test.js**
+
 - Both failing because they expect different versions between main repo and necrobot-core workspace
 - Both got "0.6.0" for both versions
 - **Fix:** Update necrobot-core/package.json version to "0.6.0-core"
@@ -59,6 +60,7 @@ Code Coverage:        ~65% average (fair)
 ### 🟡 HIGH (Improve this week)
 
 **Low Code Coverage in necrobot-commands (22.22%)**
+
 - help.js: Only 16.66% tested
 - ping.js: Only 33.33% tested
 - **Target:** Reach 80%+ coverage
@@ -68,6 +70,7 @@ Code Coverage:        ~65% average (fair)
 ### 🟡 MEDIUM (Improve this week)
 
 **CommandRegistrationHandler.js has gaps (70.45%)**
+
 - Lines 56-80 not covered (error handling paths)
 - **Target:** Reach 85%+ coverage
 - **Effort:** 1-2 hours
@@ -80,6 +83,7 @@ Code Coverage:        ~65% average (fair)
 ### 1. [TEST-COVERAGE-ANALYSIS-COMPLETE.md](./TEST-COVERAGE-ANALYSIS-COMPLETE.md)
 
 Comprehensive analysis covering:
+
 - Detailed test results for each workspace
 - Line-by-line code coverage metrics
 - Analysis of each test failure
@@ -91,6 +95,7 @@ Comprehensive analysis covering:
 ### 2. [TEST-FAILURE-FIX-ACTION-ITEMS.md](./TEST-FAILURE-FIX-ACTION-ITEMS.md)
 
 Actionable steps to fix the 2 failing tests:
+
 - Problem summary
 - Three solution options (Option 1 recommended)
 - Step-by-step implementation
@@ -105,6 +110,7 @@ Actionable steps to fix the 2 failing tests:
 ## Immediate Next Steps
 
 ### ✅ What's Done
+
 - ✅ Analysis complete
 - ✅ Issues identified
 - ✅ Documentation created
@@ -113,12 +119,14 @@ Actionable steps to fix the 2 failing tests:
 ### ⏳ What's Pending (You Can Do Now)
 
 **Option A: Quick Fix (15 minutes)**
+
 1. Open `repos/necrobot-core/package.json`
 2. Change version from `"0.6.0"` to `"0.6.0-core"`
 3. Run `npm test` to verify
 4. Commit and done
 
 **Option B: Full Analysis + Coverage Improvements (2-4 hours)**
+
 1. Apply quick fix above
 2. Add more test cases to help.js (16.66% → 80%)
 3. Add more test cases to ping.js (33.33% → 80%)
@@ -130,27 +138,35 @@ Actionable steps to fix the 2 failing tests:
 ## Test Execution Guide
 
 ### Run All Tests
+
 ```bash
 npm test
 ```
+
 Result: 183 tests, currently 181 passing
 
 ### Run with Coverage
+
 ```bash
 npm run test:coverage
 ```
+
 Result: Shows coverage percentages for each module
 
 ### Run Quick (Stops on First Failure)
+
 ```bash
 npm run test:quick
 ```
+
 Result: Fast feedback, currently fails on necrobot-core
 
 ### Run Specific Workspace
+
 ```bash
 npm test --workspace=repos/necrobot-commands
 ```
+
 Result: Only command tests (all 36 passing)
 
 ---
@@ -158,36 +174,41 @@ Result: Only command tests (all 36 passing)
 ## Coverage Summary
 
 ### By Module
+
 - **necrobot-utils**: No coverage data reported (utility functions)
 - **necrobot-core**: 80.23% statements (good) → target 90%
 - **necrobot-commands**: 22.22% statements (poor) → target 80%
 - **necrobot-dashboard**: 0% (placeholder, acceptable)
 
 ### By File Priority
-| Priority | File | Current | Target | Gap |
-|----------|------|---------|--------|-----|
-| 🔴 CRITICAL | help.js | 16.66% | 80% | 63% |
-| 🟡 HIGH | ping.js | 33.33% | 80% | 47% |
-| 🟡 MEDIUM | CommandRegistrationHandler | 70.45% | 85% | 15% |
-| 🟢 GOOD | CommandLoader | 80.28% | 90% | 10% |
+
+| Priority    | File                       | Current | Target | Gap |
+| ----------- | -------------------------- | ------- | ------ | --- |
+| 🔴 CRITICAL | help.js                    | 16.66%  | 80%    | 63% |
+| 🟡 HIGH     | ping.js                    | 33.33%  | 80%    | 47% |
+| 🟡 MEDIUM   | CommandRegistrationHandler | 70.45%  | 85%    | 15% |
+| 🟢 GOOD     | CommandLoader              | 80.28%  | 90%    | 10% |
 
 ---
 
 ## Key Insights
 
 ### Test Infrastructure ✅
+
 - Jest properly configured across all workspaces
 - Tests run fast (~1.2 seconds total)
 - Pre-commit hooks working (prettier applying fixes)
 - Good test organization (tests/ directories in each workspace)
 
 ### Code Quality 🟢
+
 - Core functionality well-tested (80%+ in necrobot-core)
 - Commands tested but coverage could be better (22% current)
 - Error handling paths need more test cases
 - Good branch coverage on what's tested (tight logic)
 
 ### Development Ready ✅
+
 - Can confidently deploy main features
 - Should improve coverage before major releases
 - All scripts validated and working
@@ -213,18 +234,19 @@ Result: Only command tests (all 36 passing)
 
 ## Timeline to 100% Pass Rate
 
-| Step | Task | Time | Status |
-|------|------|------|--------|
-| 1 | Fix necrobot-core version | 15 min | ⏳ Ready |
-| 2 | Run tests to verify | 5 min | ⏳ Ready |
-| 3 | Commit fix | 2 min | ⏳ Ready |
-| **TOTAL** | **Reach 100% pass rate** | **~20 min** | **Ready!** |
+| Step      | Task                      | Time        | Status     |
+| --------- | ------------------------- | ----------- | ---------- |
+| 1         | Fix necrobot-core version | 15 min      | ⏳ Ready   |
+| 2         | Run tests to verify       | 5 min       | ⏳ Ready   |
+| 3         | Commit fix                | 2 min       | ⏳ Ready   |
+| **TOTAL** | **Reach 100% pass rate**  | **~20 min** | **Ready!** |
 
 ---
 
 ## What This Means
 
 ### For Development
+
 - ✅ Project is in excellent health
 - ✅ Core features are well-tested
 - ✅ Can deploy with confidence
@@ -232,6 +254,7 @@ Result: Only command tests (all 36 passing)
 - ⚠️ Fix 2 failing tests to get 100% pass rate
 
 ### For Testing Strategy
+
 - ✅ TDD workflow is working well
 - ✅ Jest configuration good
 - ✅ Test infrastructure solid
@@ -239,6 +262,7 @@ Result: Only command tests (all 36 passing)
 - ⏳ Need to test error paths more thoroughly
 
 ### For Code Quality
+
 - ✅ 98.9% of tests passing is excellent
 - ✅ Core module at 80% coverage is good
 - ⚠️ Commands at 22% coverage needs work
@@ -249,18 +273,21 @@ Result: Only command tests (all 36 passing)
 ## Ready to Proceed?
 
 ### If you want to fix the failing tests:
+
 1. See [TEST-FAILURE-FIX-ACTION-ITEMS.md](./TEST-FAILURE-FIX-ACTION-ITEMS.md)
 2. Follow the "Recommended Solution" section
 3. Run commands in "Verification" section
 4. You'll have 100% pass rate
 
 ### If you want to improve coverage:
+
 1. See [TEST-COVERAGE-ANALYSIS-COMPLETE.md](./TEST-COVERAGE-ANALYSIS-COMPLETE.md)
 2. Look at "Coverage Analysis" section
 3. Look at "Recommendations" section
 4. Create new test files for command coverage
 
 ### If you want the full picture:
+
 1. Read [TEST-COVERAGE-ANALYSIS-COMPLETE.md](./TEST-COVERAGE-ANALYSIS-COMPLETE.md) for complete analysis
 2. Use [TEST-FAILURE-FIX-ACTION-ITEMS.md](./TEST-FAILURE-FIX-ACTION-ITEMS.md) to fix immediate issues
 3. Plan coverage improvements based on Priority section

@@ -39,7 +39,7 @@ describe('CommandLoader', () => {
     if (fs.existsSync(tempCommandsDir)) {
       const removeDir = (dir) => {
         if (fs.existsSync(dir)) {
-          fs.readdirSync(dir).forEach(file => {
+          fs.readdirSync(dir).forEach((file) => {
             const filePath = path.join(dir, file);
             if (fs.statSync(filePath).isDirectory()) {
               removeDir(filePath);
@@ -360,6 +360,234 @@ describe('CommandLoader', () => {
 
       const isValid = commandLoader.validateCommand(invalidCommand);
       assert.strictEqual(isValid, false);
+    });
+  });
+
+  describe('getCommandInfo()', () => {
+    it('should return command info by name', () => {
+      commandLoader.commandsByName.set('test-info', {
+        path: '/path/to/command',
+        category: 'misc',
+      });
+
+      const info = commandLoader.getCommandInfo('test-info');
+      assert.strictEqual(info.path, '/path/to/command');
+      assert.strictEqual(info.category, 'misc');
+    });
+
+    it('should return undefined for non-existent command', () => {
+      const info = commandLoader.getCommandInfo('non-existent');
+      assert.strictEqual(info, undefined);
+    });
+  });
+
+  describe('getCommandsByCategory()', () => {
+    it('should organize commands by category', () => {
+      // Add multiple commands in different categories
+      commandLoader.commandsByName.set('ping', { category: 'misc' });
+      commandLoader.commandsByName.set('help', { category: 'misc' });
+      commandLoader.commandsByName.set('battle', { category: 'battle' });
+      commandLoader.commandsByName.set('gang', { category: 'gang' });
+
+      const byCategory = commandLoader.getCommandsByCategory();
+
+      assert.strictEqual(byCategory.misc.length, 2);
+      assert.ok(byCategory.misc.includes('ping'));
+      assert.ok(byCategory.misc.includes('help'));
+      assert.strictEqual(byCategory.battle.length, 1);
+      assert.ok(byCategory.battle.includes('battle'));
+      assert.strictEqual(byCategory.gang.length, 1);
+      assert.ok(byCategory.gang.includes('gang'));
+    });
+
+    it('should return empty object for no commands', () => {
+      commandLoader.commandsByName.clear();
+      const byCategory = commandLoader.getCommandsByCategory();
+      assert.deepStrictEqual(byCategory, {});
+    });
+
+    it('should handle single command in single category', () => {
+      commandLoader.commandsByName.clear();
+      commandLoader.commandsByName.set('single', { category: 'test' });
+
+      const byCategory = commandLoader.getCommandsByCategory();
+
+      assert.strictEqual(Object.keys(byCategory).length, 1);
+      assert.ok(byCategory.test);
+      assert.strictEqual(byCategory.test.length, 1);
+      assert.strictEqual(byCategory.test[0], 'single');
+    });
+
+    it('should handle multiple commands in multiple categories', () => {
+      commandLoader.commandsByName.clear();
+
+      // Add 10 commands across 3 categories
+      for (let i = 0; i < 3; i++) {
+        commandLoader.commandsByName.set(`misc-${i}`, { category: 'misc' });
+      }
+      for (let i = 0; i < 4; i++) {
+        commandLoader.commandsByName.set(`battle-${i}`, { category: 'battle' });
+      }
+      for (let i = 0; i < 3; i++) {
+        commandLoader.commandsByName.set(`social-${i}`, { category: 'social' });
+      }
+
+      const byCategory = commandLoader.getCommandsByCategory();
+
+      assert.strictEqual(Object.keys(byCategory).length, 3);
+      assert.strictEqual(byCategory.misc.length, 3);
+      assert.strictEqual(byCategory.battle.length, 4);
+      assert.strictEqual(byCategory.social.length, 3);
+    });
+  });
+
+  describe('advanced command execution scenarios', () => {
+    it('should handle interaction that is already replied', async () => {
+      let editReplyCalled = false;
+
+      const testCommand = {
+        name: 'test-replied',
+        description: 'Test replied',
+        data: { toJSON: () => ({}) },
+        async executeInteraction(interaction) {
+          await interaction.editReply('Response');
+        },
+      };
+
+      commandLoader.commands.set('test-replied', testCommand);
+
+      const mockInteraction = {
+        editReply: async (msg) => {
+          editReplyCalled = true;
+          return msg;
+        },
+        reply: async (msg) => msg,
+        deferReply: async () => {},
+        replied: true,
+        deferred: true,
+      };
+
+      await commandLoader.executeCommand('test-replied', mockInteraction);
+      assert.strictEqual(editReplyCalled, true);
+    });
+
+    it('should handle interaction that needs followUp', async () => {
+      let followUpCalled = false;
+
+      const testCommand = {
+        name: 'test-followup',
+        description: 'Test followup',
+        data: { toJSON: () => ({}) },
+        async executeInteraction(interaction) {
+          throw new Error('Intentional error');
+        },
+      };
+
+      commandLoader.commands.set('test-followup', testCommand);
+
+      const mockInteraction = {
+        editReply: async (msg) => msg,
+        followUp: async (msg) => {
+          followUpCalled = true;
+          return msg;
+        },
+        reply: async (msg) => msg,
+        deferReply: async () => {},
+        replied: true,
+        deferred: false,
+      };
+
+      try {
+        await commandLoader.executeCommand('test-followup', mockInteraction);
+      } catch (error) {
+        // Error is expected
+      }
+
+      assert.strictEqual(followUpCalled, true);
+    });
+
+    it('should use reply method when interaction not deferred or replied', async () => {
+      let replyCalled = false;
+
+      const testCommand = {
+        name: 'test-reply',
+        description: 'Test reply',
+        data: { toJSON: () => ({}) },
+        async executeInteraction(interaction) {
+          throw new Error('Test error');
+        },
+      };
+
+      commandLoader.commands.set('test-reply', testCommand);
+
+      const mockInteraction = {
+        editReply: async (msg) => msg,
+        followUp: async (msg) => msg,
+        reply: async (msg) => {
+          replyCalled = true;
+          return msg;
+        },
+        deferReply: async () => {},
+        replied: false,
+        deferred: false,
+      };
+
+      try {
+        await commandLoader.executeCommand('test-reply', mockInteraction);
+      } catch (error) {
+        // Error is expected
+      }
+
+      assert.strictEqual(replyCalled, true);
+    });
+  });
+
+  describe('command validation edge cases', () => {
+    it('should require data to have toJSON or be object with JSON-like structure', () => {
+      const commandWithoutToJSON = {
+        name: 'test',
+        description: 'Test',
+        data: null,
+        async executeInteraction() {},
+      };
+
+      const isValid = commandLoader.validateCommand(commandWithoutToJSON);
+      assert.strictEqual(isValid, false);
+    });
+
+    it('should accept executeInteraction as either async or regular function', () => {
+      const asyncCommand = {
+        name: 'async-test',
+        description: 'Async test',
+        data: { toJSON: () => ({}) },
+        async executeInteraction() {}, // async function
+      };
+
+      const syncCommand = {
+        name: 'sync-test',
+        description: 'Sync test',
+        data: { toJSON: () => ({}) },
+        executeInteraction() {}, // non-async function (should still work)
+      };
+
+      assert.strictEqual(commandLoader.validateCommand(asyncCommand), true);
+      // Note: sync functions are technically allowed by typeof check
+      assert.strictEqual(commandLoader.validateCommand(syncCommand), true);
+    });
+
+    it('should validate command with all optional properties', () => {
+      const complexCommand = {
+        name: 'complex',
+        description: 'Complex command with all properties',
+        data: { toJSON: () => ({}) },
+        async executeInteraction(interaction) {},
+        aliases: ['alias1', 'alias2'],
+        permissions: ['ADMINISTRATOR'],
+        cooldown: 3,
+      };
+
+      const isValid = commandLoader.validateCommand(complexCommand);
+      assert.strictEqual(isValid, true);
     });
   });
 });

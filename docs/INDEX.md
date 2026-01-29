@@ -57,6 +57,16 @@
 - [Release Process](./guides/RELEASE-PROCESS.md) - How to create releases
 - [GitHub Packages Publishing](./guides/github-packages-publishing.md) - Publishing to GitHub Packages registry
 
+#### Scripts & npm Tools
+
+- [NPM Scripts Mapping](./guides/NPM-SCRIPTS-MAPPING.md) - Complete mapping of all npm scripts
+- [Scripts Analysis Report](./guides/SCRIPTS-ANALYSIS-REPORT.md) - Detailed analysis of all available scripts
+- [Scripts Analysis Summary](./guides/SCRIPTS-ANALYSIS-SUMMARY.md) - Summary of script functionality
+- [Scripts Analysis Complete](./guides/SCRIPTS-ANALYSIS-COMPLETE.md) - Complete scripts analysis
+- [Scripts Execution Guide](./guides/SCRIPTS-EXECUTION-VALIDATION-GUIDE.md) - How to execute scripts
+- [Scripts Quick Reference](./guides/SCRIPTS-QUICK-REFERENCE.md) - Quick lookup for common scripts
+- [Scripts TDD Execution Guide](./guides/SCRIPTS-TDD-EXECUTION-SUMMARY.md) - TDD script execution patterns
+
 #### Copilot & AI Tools
 
 - [Using Copilot Instructions](./guides/using-copilot-instructions.md) - Guide to project-specific Copilot patterns
@@ -66,9 +76,15 @@
 
 - [Best Practices Directory](./best-practices/) - General project best practices
 
-### Testing
+### Testing & Code Coverage
 
-- [Testing Documentation](./testing/) - Testing strategies and guides
+- [Code Coverage Analysis](./testing/CODE-COVERAGE-ANALYSIS.md) - Detailed coverage analysis across all workspaces
+- [Coverage Improvements Summary](./testing/COVERAGE-IMPROVEMENTS-SUMMARY.md) - Summary of coverage improvements
+- [Test Coverage Index](./testing/TEST-COVERAGE-INDEX.md) - Index of test coverage files
+- [Test Quick Reference](./testing/TEST-QUICK-REFERENCE.md) - Quick test reference
+- [Test Results Summary](./testing/TEST-RESULTS-SUMMARY.md) - Summary of test results
+- [Command Files Coverage Enhancement](./testing/COMMAND-FILES-COVERAGE-ENHANCEMENT.md) - Coverage enhancement for command files
+- [Command Files Session Summary](./testing/COMMAND-FILES-SESSION-SUMMARY.md) - Session summary for command file testing
 
 ### Quick Reference Cards (QRC)
 

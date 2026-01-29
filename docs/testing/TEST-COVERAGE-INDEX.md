@@ -14,6 +14,7 @@ This analysis generated **4 comprehensive documents** covering all aspects of te
 ### 📊 Start Here
 
 **[TEST-QUICK-REFERENCE.md](./TEST-QUICK-REFERENCE.md)** ⭐ START HERE
+
 - 30-second summary
 - Key numbers and metrics
 - Quick reference card format
@@ -25,6 +26,7 @@ This analysis generated **4 comprehensive documents** covering all aspects of te
 ### 📋 Executive Summary
 
 **[TEST-RESULTS-SUMMARY.md](./TEST-RESULTS-SUMMARY.md)**
+
 - High-level overview
 - What's good and what needs attention
 - Quick priorities and timeline
@@ -36,6 +38,7 @@ This analysis generated **4 comprehensive documents** covering all aspects of te
 ### 🔧 Action Items
 
 **[project-docs/TEST-FAILURE-FIX-ACTION-ITEMS.md](./project-docs/TEST-FAILURE-FIX-ACTION-ITEMS.md)**
+
 - How to fix the 2 failing tests
 - 3 solution options (Option 1 recommended)
 - Step-by-step implementation
@@ -47,6 +50,7 @@ This analysis generated **4 comprehensive documents** covering all aspects of te
 ### 📈 Complete Analysis
 
 **[project-docs/TEST-COVERAGE-ANALYSIS-COMPLETE.md](./project-docs/TEST-COVERAGE-ANALYSIS-COMPLETE.md)**
+
 - Full detailed test results
 - Coverage metrics by file
 - Analysis of each failure
@@ -63,14 +67,14 @@ This analysis generated **4 comprehensive documents** covering all aspects of te
 
 **If you want to...**
 
-| Task | Document | Time |
-|------|----------|------|
-| **Get the basics** | TEST-QUICK-REFERENCE.md | 2 min |
-| **Understand status** | TEST-RESULTS-SUMMARY.md | 5 min |
-| **Fix failing tests** | TEST-FAILURE-FIX-ACTION-ITEMS.md | 5 min |
-| **Deep dive** | TEST-COVERAGE-ANALYSIS-COMPLETE.md | 15 min |
-| **Write tests** | [.github/copilot-patterns/TESTING-PATTERNS.md](./.github/copilot-patterns/TESTING-PATTERNS.md) | 10 min |
-| **Follow TDD** | [.github/copilot-patterns/TDD-WORKFLOW.md](./.github/copilot-patterns/TDD-WORKFLOW.md) | 10 min |
+| Task                  | Document                                                                                       | Time   |
+| --------------------- | ---------------------------------------------------------------------------------------------- | ------ |
+| **Get the basics**    | TEST-QUICK-REFERENCE.md                                                                        | 2 min  |
+| **Understand status** | TEST-RESULTS-SUMMARY.md                                                                        | 5 min  |
+| **Fix failing tests** | TEST-FAILURE-FIX-ACTION-ITEMS.md                                                               | 5 min  |
+| **Deep dive**         | TEST-COVERAGE-ANALYSIS-COMPLETE.md                                                             | 15 min |
+| **Write tests**       | [.github/copilot-patterns/TESTING-PATTERNS.md](./.github/copilot-patterns/TESTING-PATTERNS.md) | 10 min |
+| **Follow TDD**        | [.github/copilot-patterns/TDD-WORKFLOW.md](./.github/copilot-patterns/TDD-WORKFLOW.md)         | 10 min |
 
 ### By Role
 
@@ -123,6 +127,7 @@ COVERAGE BY MODULE:
 ### 🔴 CRITICAL (Do This First)
 
 **Fix 2 Test Failures in necrobot-core**
+
 - Location: test-create-release.test.js
 - Cause: Version comparison tests expect different versions
 - Fix: Update necrobot-core/package.json version
@@ -134,6 +139,7 @@ COVERAGE BY MODULE:
 ### 🟡 HIGH (This Week)
 
 **Improve necrobot-commands Coverage (22% → 80%)**
+
 - Focus: help.js (16.66%) and ping.js (33.33%)
 - Goal: Add test cases for command logic
 - Time: 2-4 hours
@@ -141,6 +147,7 @@ COVERAGE BY MODULE:
 - Instructions: See TEST-COVERAGE-ANALYSIS-COMPLETE.md → Recommendations section
 
 **Improve necrobot-core Coverage (80% → 90%)**
+
 - Focus: CommandRegistrationHandler.js error paths
 - Goal: Add tests for error scenarios
 - Time: 1-2 hours
@@ -150,6 +157,7 @@ COVERAGE BY MODULE:
 ### 🟢 MEDIUM (This Month)
 
 **Add Real Tests to necrobot-dashboard**
+
 - Dashboard not active, but placeholder ready
 - Add real tests when React components added
 - Time: TBD (when components added)
@@ -161,21 +169,21 @@ COVERAGE BY MODULE:
 
 ### Immediate (Today)
 
-| Step | Action | Time | Command |
-|------|--------|------|---------|
-| 1 | Fix version issue | 5 min | See TEST-FAILURE-FIX-ACTION-ITEMS.md |
-| 2 | Run tests to verify | 5 min | `npm test` |
-| 3 | Commit | 2 min | `git commit` |
-| **Total** | **100% pass rate** | **15 min** | **See docs** |
+| Step      | Action              | Time       | Command                              |
+| --------- | ------------------- | ---------- | ------------------------------------ |
+| 1         | Fix version issue   | 5 min      | See TEST-FAILURE-FIX-ACTION-ITEMS.md |
+| 2         | Run tests to verify | 5 min      | `npm test`                           |
+| 3         | Commit              | 2 min      | `git commit`                         |
+| **Total** | **100% pass rate**  | **15 min** | **See docs**                         |
 
 ### Short-term (This Week)
 
-| Phase | Goal | Effort | Result |
-|-------|------|--------|--------|
-| 1 | Fix failing tests | 15 min | 100% pass rate |
-| 2 | Improve commands coverage | 2-4 hr | 80% coverage |
-| 3 | Improve core coverage | 1-2 hr | 90% coverage |
-| **Total** | **75% overall coverage** | **5 hours** | **Strong test suite** |
+| Phase     | Goal                      | Effort      | Result                |
+| --------- | ------------------------- | ----------- | --------------------- |
+| 1         | Fix failing tests         | 15 min      | 100% pass rate        |
+| 2         | Improve commands coverage | 2-4 hr      | 80% coverage          |
+| 3         | Improve core coverage     | 1-2 hr      | 90% coverage          |
+| **Total** | **75% overall coverage**  | **5 hours** | **Strong test suite** |
 
 ### Long-term (This Month)
 
@@ -262,6 +270,7 @@ cat repos/necrobot-core/package.json       # Check version
 ## Stakeholder Checklist
 
 ### For Development Team
+
 - [ ] Read TEST-QUICK-REFERENCE.md (2 min)
 - [ ] Review test results by module
 - [ ] Understand the 2 failing tests
@@ -270,6 +279,7 @@ cat repos/necrobot-core/package.json       # Check version
 - [ ] Start improving command tests
 
 ### For QA Team
+
 - [ ] Read TEST-COVERAGE-ANALYSIS-COMPLETE.md (15 min)
 - [ ] Review coverage metrics by file
 - [ ] Identify gaps that need more testing
@@ -277,6 +287,7 @@ cat repos/necrobot-core/package.json       # Check version
 - [ ] Set coverage targets for each module
 
 ### For Project Managers
+
 - [ ] Read TEST-RESULTS-SUMMARY.md (5 min)
 - [ ] Understand current test health (98.9%)
 - [ ] Note 15-minute fix needed
@@ -284,6 +295,7 @@ cat repos/necrobot-core/package.json       # Check version
 - [ ] Track coverage improvements
 
 ### For DevOps/CI-CD
+
 - [ ] Read TEST-FAILURE-FIX-ACTION-ITEMS.md
 - [ ] Implement fix using provided commands
 - [ ] Verify CI pipeline passes after fix
@@ -295,11 +307,13 @@ cat repos/necrobot-core/package.json       # Check version
 ## Success Criteria
 
 ### ✅ Minimum Success
+
 - [ ] Fix 2 failing tests → 100% pass rate
 - Time: 15 minutes
 - Status: Ready to execute
 
 ### ✅ Good Success
+
 - [ ] Fix failing tests (100% pass rate)
 - [ ] Improve necrobot-commands to 60% coverage
 - [ ] Improve necrobot-core to 90% coverage
@@ -307,6 +321,7 @@ cat repos/necrobot-core/package.json       # Check version
 - Status: Planned
 
 ### ✅ Excellent Success
+
 - [ ] 100% test pass rate
 - [ ] 80% coverage across all modules
 - [ ] Documented test patterns
@@ -319,53 +334,61 @@ cat repos/necrobot-core/package.json       # Check version
 ## Document Selection by Scenario
 
 ### Scenario 1: "I just want to fix the failures"
+
 **Read:** TEST-FAILURE-FIX-ACTION-ITEMS.md
 **Time:** 10 minutes
 **Result:** 100% pass rate
 
 ### Scenario 2: "I need to understand what tests we have"
+
 **Read:** TEST-QUICK-REFERENCE.md + TEST-RESULTS-SUMMARY.md
 **Time:** 7 minutes
 **Result:** Clear picture of test status
 
 ### Scenario 3: "We need better coverage - what's the plan?"
+
 **Read:** TEST-COVERAGE-ANALYSIS-COMPLETE.md
 **Time:** 15 minutes
 **Result:** Detailed improvement roadmap
 
 ### Scenario 4: "I'm onboarding a new developer"
+
 **Read in order:**
+
 1. TEST-QUICK-REFERENCE.md (2 min)
 2. TESTING-PATTERNS.md (10 min)
 3. TDD-WORKFLOW.md (10 min)
-**Time:** 22 minutes
-**Result:** New developer understands testing approach
+   **Time:** 22 minutes
+   **Result:** New developer understands testing approach
 
 ### Scenario 5: "We need to write tests for a new feature"
+
 **Read:**
+
 1. TESTING-PATTERNS.md (for patterns)
 2. TDD-WORKFLOW.md (for workflow)
 3. Look at existing tests as examples
-**Time:** 15 minutes + 1 hour for first test
-**Result:** Well-written tests following project standards
+   **Time:** 15 minutes + 1 hour for first test
+   **Result:** Well-written tests following project standards
 
 ---
 
 ## Document Statistics
 
-| Document | Lines | Topics | Use Case |
-|----------|-------|--------|----------|
-| TEST-QUICK-REFERENCE.md | 200 | 30-sec summary | Decision-makers |
-| TEST-RESULTS-SUMMARY.md | 300 | Status & timeline | Team leads |
-| TEST-FAILURE-FIX-ACTION-ITEMS.md | 400 | Implementation | Developers |
-| TEST-COVERAGE-ANALYSIS-COMPLETE.md | 800 | Deep analysis | QA/Architects |
-| **Total** | **1,700+** | **Complete picture** | **All roles** |
+| Document                           | Lines      | Topics               | Use Case        |
+| ---------------------------------- | ---------- | -------------------- | --------------- |
+| TEST-QUICK-REFERENCE.md            | 200        | 30-sec summary       | Decision-makers |
+| TEST-RESULTS-SUMMARY.md            | 300        | Status & timeline    | Team leads      |
+| TEST-FAILURE-FIX-ACTION-ITEMS.md   | 400        | Implementation       | Developers      |
+| TEST-COVERAGE-ANALYSIS-COMPLETE.md | 800        | Deep analysis        | QA/Architects   |
+| **Total**                          | **1,700+** | **Complete picture** | **All roles**   |
 
 ---
 
 ## Generated By
 
 **NecromundaBot Test Analysis v1.0**
+
 - Test Framework: Jest 29.7.0
 - Node.js: 22.0.0+
 - Date: January 29, 2026
@@ -376,15 +399,19 @@ cat repos/necrobot-core/package.json       # Check version
 ## Questions?
 
 ### Technical Questions
+
 - See: [TEST-COVERAGE-ANALYSIS-COMPLETE.md](./project-docs/TEST-COVERAGE-ANALYSIS-COMPLETE.md)
 
 ### How to Fix Issues
+
 - See: [TEST-FAILURE-FIX-ACTION-ITEMS.md](./project-docs/TEST-FAILURE-FIX-ACTION-ITEMS.md)
 
 ### How to Write Tests
+
 - See: [.github/copilot-patterns/TESTING-PATTERNS.md](./.github/copilot-patterns/TESTING-PATTERNS.md)
 
 ### Quick Facts
+
 - See: [TEST-QUICK-REFERENCE.md](./TEST-QUICK-REFERENCE.md)
 
 ---
