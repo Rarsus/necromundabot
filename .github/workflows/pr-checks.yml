@@ -400,14 +400,29 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const lintPassed = '${{ needs.lint-and-format.result }}' === 'success';
-            const prPassed = '${{ needs.pr-validation.result }}' !== 'failure';
-            const depPassed = '${{ needs.dependency-check.result }}' === 'success';
+            const lintResult = '${{ needs.lint-and-format.result }}';
+            const prResult = '${{ needs.pr-validation.result }}';
+            const depResult = '${{ needs.dependency-check.result }}';
+            
+            // Treat 'skipped' as passing since jobs can be intentionally skipped (e.g., draft PRs)
+            const lintPassed = lintResult === 'success' || lintResult === 'skipped';
+            const prPassed = prResult !== 'failure';
+            const depPassed = depResult === 'success' || depResult === 'skipped';
 
             let message = '## ✅ PR Checks Summary\n\n';
-            message += `${lintPassed ? '✅' : '❌'} Code Quality\n`;
+            message += `${lintPassed ? '✅' : '❌'} Code Quality`;
+            if (lintResult === 'skipped') {
+              message += ' (skipped - draft PR)\n';
+            } else {
+              message += '\n';
+            }
             message += `${prPassed ? '✅' : '⚠️'} PR Structure\n`;
-            message += `${depPassed ? '✅' : '❌'} Dependencies\n`;
+            message += `${depPassed ? '✅' : '❌'} Dependencies`;
+            if (depResult === 'skipped') {
+              message += ' (skipped)\n';
+            } else {
+              message += '\n';
+            }
 
             if (!lintPassed || !depPassed) {
               core.setFailed('PR checks did not pass');
