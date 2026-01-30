@@ -121,7 +121,6 @@ jobs:
             echo "⚠️ No audit baseline found, skipping baseline check"
             echo "exceeded=false" >> $GITHUB_OUTPUT
           fi
-        continue-on-error: true
 
       - name: ❌ Fail if critical vulnerabilities
         if: inputs.fail-on-critical && steps.parse.outputs.critical > 0
