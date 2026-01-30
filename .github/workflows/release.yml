@@ -171,6 +171,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      actions: write
     steps:
       - name: 🔔 Trigger publish-packages workflow
         uses: actions/github-script@v7
