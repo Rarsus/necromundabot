@@ -7,11 +7,7 @@ on:
         description: 'Test type: unit, integration, or both'
         required: false
         default: 'both'
-        type: choice
-        options:
-          - unit
-          - integration
-          - both
+        type: string
       coverage-enabled:
         description: 'Enable coverage reporting'
         required: false
@@ -84,7 +80,6 @@ jobs:
 
   integration-tests:
     name: Integration Tests
-    if: inputs.test-type == 'integration' || inputs.test-type == 'both'
     needs: [unit-tests]
     if: always() && (inputs.test-type == 'integration' || (inputs.test-type == 'both' && needs.unit-tests.result != 'failure'))
     runs-on: ubuntu-latest
