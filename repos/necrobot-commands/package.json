@@ -1,6 +1,6 @@
 {
   "name": "@rarsus/necrobot-commands",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "NecroBot commands module - all Discord bot commands",
   "main": "src/index.js",
   "publishConfig": {
