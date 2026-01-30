@@ -39,7 +39,7 @@ class CommandLoader {
       }
 
       console.log(`  📂 Category: ${category}`);
-      const files = fs.readdirSync(categoryPath).filter(file => file.endsWith('.js'));
+      const files = fs.readdirSync(categoryPath).filter((file) => file.endsWith('.js'));
 
       for (const file of files) {
         const filePath = path.join(categoryPath, file);
@@ -67,9 +67,7 @@ class CommandLoader {
       }
     }
 
-    console.log(
-      `\n✅ Loaded ${this.commands.size} command(s) from ${categories.length} categor(y/ies)\n`
-    );
+    console.log(`\n✅ Loaded ${this.commands.size} command(s) from ${categories.length} categor(y/ies)\n`);
     return this.commands;
   }
 
@@ -112,7 +110,7 @@ class CommandLoader {
    * @returns {Array} Array of SlashCommandBuilder data
    */
   getSlashCommandData() {
-    return this.commands.map(command => command.data.toJSON?.() || command.data);
+    return this.commands.map((command) => command.data.toJSON?.() || command.data);
   }
 
   /**

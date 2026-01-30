@@ -14,7 +14,7 @@ class InteractionHandler {
    */
   registerHandlers() {
     // Handle slash command interactions
-    this.client.on('interactionCreate', interaction => this.handleInteraction(interaction));
+    this.client.on('interactionCreate', (interaction) => this.handleInteraction(interaction));
 
     console.log('✅ Interaction handlers registered\n');
   }

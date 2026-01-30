@@ -11,9 +11,7 @@ module.exports = {
   description: 'Replies with Pong! and bot latency',
 
   // Command data (for slash command registration)
-  data: new SlashCommandBuilder()
-    .setName('ping')
-    .setDescription('Replies with Pong! and bot latency'),
+  data: new SlashCommandBuilder().setName('ping').setDescription('Replies with Pong! and bot latency'),
 
   /**
    * Execute the slash command interaction
@@ -26,10 +24,6 @@ module.exports = {
     const latency = reply.createdTimestamp - interaction.createdTimestamp;
     const wsLatency = interaction.client.ws.ping;
 
-    await interaction.editReply(
-      '🏓 Pong!\n' +
-        `Message Latency: ${latency}ms\n` +
-        `WebSocket Latency: ${wsLatency}ms`
-    );
+    await interaction.editReply('🏓 Pong!\n' + `Message Latency: ${latency}ms\n` + `WebSocket Latency: ${wsLatency}ms`);
   },
 };

@@ -71,7 +71,7 @@ client.once('clientReady', async () => {
 });
 
 // Error handling
-client.on('error', error => {
+client.on('error', (error) => {
   console.error('❌ Discord Client Error:', error);
 });
 
@@ -80,7 +80,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Login to Discord
-client.login(TOKEN).catch(error => {
+client.login(TOKEN).catch((error) => {
   console.error('❌ Failed to login:', error);
   process.exit(1);
 });

@@ -96,7 +96,7 @@ class CommandRegistrationHandler {
       }
 
       console.log(`\n📋 Registered Commands (${commands.size} total):`);
-      commands.forEach(command => {
+      commands.forEach((command) => {
         console.log(`   - /${command.name}: ${command.description}`);
       });
       console.log();
