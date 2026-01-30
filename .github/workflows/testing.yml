@@ -20,6 +20,10 @@ jobs:
   unit-tests:
     name: 'Unit Tests (Node 22.x)'
     uses: ./.github/workflows/reusable-tests.yml
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     with:
       test-type: 'unit'
       enable-coverage: true
@@ -27,6 +31,10 @@ jobs:
   integration-tests:
     name: 'Integration Tests'
     uses: ./.github/workflows/reusable-tests.yml
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     needs: [unit-tests]
     if: always() && needs.unit-tests.result != 'failure'
     with:

@@ -23,6 +23,8 @@ jobs:
   dependency-scan:
     name: 'Dependency Scanning'
     uses: ./.github/workflows/reusable-audit-check.yml
+    permissions:
+      contents: read
     with:
       fail-on-critical: true
       fail-on-baseline-exceeded: true

@@ -10,6 +10,8 @@ jobs:
   pre-release-check:
     name: Pre-Release Vulnerability Check
     uses: ./.github/workflows/reusable-audit-check.yml
+    permissions:
+      contents: read
     with:
       fail-on-critical: true
       fail-on-baseline-exceeded: true

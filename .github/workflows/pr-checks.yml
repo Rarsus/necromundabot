@@ -20,6 +20,9 @@ jobs:
   lint-and-format:
     name: 'Lint & Format Check'
     uses: ./.github/workflows/reusable-lint-format.yml
+    permissions:
+      contents: read
+      pull-requests: write
     if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
 
   pr-validation:
@@ -136,6 +139,8 @@ jobs:
   dependency-check:
     name: 'Dependency Audit with Baseline'
     uses: ./.github/workflows/reusable-audit-check.yml
+    permissions:
+      contents: read
     with:
       fail-on-critical: true
       fail-on-baseline-exceeded: true

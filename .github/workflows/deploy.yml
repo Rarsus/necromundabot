@@ -29,6 +29,10 @@ jobs:
   testing:
     name: 'Test Suite Validation'
     uses: ./.github/workflows/testing.yml
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     # Wait for latest code to be ready
     if: |
       github.event_name == 'workflow_dispatch' ||
