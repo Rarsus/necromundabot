@@ -81,9 +81,8 @@ jobs:
       - name: 🔍 Check if version already published
         id: check
         run: |
-          # Use || true to allow npm view to fail without exiting the script
-          npm view ${{ inputs.scope }}/${{ inputs.package-name }}@${{ steps.version.outputs.version }} >/dev/null 2>&1 || true
-          if [ $? -eq 0 ]; then
+          # Check if package version exists in registry
+          if npm view ${{ inputs.scope }}/${{ inputs.package-name }}@${{ steps.version.outputs.version }} 2>/dev/null; then
             echo "already-published=true" >> $GITHUB_OUTPUT
             echo "ℹ️  Version already exists in registry"
           else
@@ -94,10 +93,15 @@ jobs:
       - name: 📤 Publish to GitHub Packages
         id: publish
         if: steps.check.outputs.already-published == 'false'
-        continue-on-error: true
         run: |
-          npm publish --workspace=${{ inputs.workspace-path }}
-          echo "✅ Published ${{ inputs.scope }}/${{ inputs.package-name }}@${{ steps.version.outputs.version }}"
+          echo "Publishing ${{ inputs.scope }}/${{ inputs.package-name }}@${{ steps.version.outputs.version }}..."
+          if npm publish --workspace=${{ inputs.workspace-path }}; then
+            echo "✅ Published successfully"
+            echo "published=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Publish failed with exit code $?"
+            exit 1
+          fi
 
       - name: ⏭️  Skip - Already published
         if: steps.check.outputs.already-published == 'true'
@@ -109,11 +113,14 @@ jobs:
 
       - name: 📊 Set publish result
         id: publish-result
+        if: always()
         run: |
           if [ "${{ steps.check.outputs.already-published }}" == "true" ]; then
             echo "published=false" >> $GITHUB_OUTPUT
-          else
+          elif [ "${{ steps.publish.outcome }}" == "success" ]; then
             echo "published=true" >> $GITHUB_OUTPUT
+          else
+            echo "published=false" >> $GITHUB_OUTPUT
           fi
 
       - name: 📝 Summary
