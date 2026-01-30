@@ -123,13 +123,13 @@ jobs:
           fi
 
       - name: ❌ Fail if critical vulnerabilities
-        if: inputs.fail-on-critical && steps.parse.outputs.critical > 0
+        if: "inputs.fail-on-critical == 'true' && steps.parse.outputs.critical != '0'"
         run: |
           echo "❌ CRITICAL vulnerabilities found: ${{ steps.parse.outputs.critical }}"
           exit 1
 
       - name: ❌ Fail if baseline exceeded
-        if: inputs.fail-on-baseline-exceeded && steps.baseline.outputs.exceeded == 'true'
+        if: "inputs.fail-on-baseline-exceeded == 'true' && steps.baseline.outputs.exceeded == 'true'"
         run: |
           echo "❌ Vulnerabilities exceed baseline"
           exit 1
