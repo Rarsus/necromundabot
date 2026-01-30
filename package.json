@@ -22,6 +22,7 @@
     "rimraf": "^4.4.1"
   },
   "scripts": {
+    "start": "npm start --workspace=necrobot-core",
     "test": "npm test --workspaces",
     "test:integration": "npm test --workspaces",
     "test:watch": "npm run test:watch --workspaces",

@@ -43,12 +43,20 @@ RUN apk add --no-cache dumb-init
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
-# Copy built application from builder stage
-COPY --from=builder --chown=nodejs:nodejs /app /app
+# Copy all source files and package files from builder
+COPY --from=builder --chown=nodejs:nodejs /app/package.json /app/package.json
+COPY --from=builder --chown=nodejs:nodejs /app/package-lock.json /app/package-lock.json
+COPY --from=builder --chown=nodejs:nodejs /app/repos /app/repos
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules /app/node_modules
 
 # Create database directory for volume mount
 RUN mkdir -p /app/data && \
     chown nodejs:nodejs /app/data
+
+# Ensure npm cache directory is writable by nodejs user
+RUN mkdir -p /home/nodejs/.npm && \
+    chown -R nodejs:nodejs /home/nodejs/.npm && \
+    chown -R nodejs:nodejs /app
 
 # Switch to non-root user
 USER nodejs
