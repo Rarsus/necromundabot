@@ -14,9 +14,7 @@ const { SlashCommandBuilder } = require('discord.js');
  */
 function buildCommandOptions(commandName, description, optionDefinitions = []) {
   // Create SlashCommandBuilder for Discord slash commands
-  const data = new SlashCommandBuilder()
-    .setName(commandName)
-    .setDescription(description);
+  const data = new SlashCommandBuilder().setName(commandName).setDescription(description);
 
   // Add options to SlashCommandBuilder
   optionDefinitions.forEach((opt) => {

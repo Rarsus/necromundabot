@@ -64,11 +64,7 @@ class CommandBase {
     try {
       await this.execute(message, args);
     } catch (error) {
-      handleCommandError(
-        { reply: (msg) => message.reply(msg) },
-        error,
-        this.name
-      );
+      handleCommandError({ reply: (msg) => message.reply(msg) }, error, this.name);
     }
   }
 

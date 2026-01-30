@@ -11,9 +11,7 @@ module.exports = {
   description: 'Shows all available commands',
 
   // Command data (for slash command registration)
-  data: new SlashCommandBuilder()
-    .setName('help')
-    .setDescription('Shows all available commands'),
+  data: new SlashCommandBuilder().setName('help').setDescription('Shows all available commands'),
 
   /**
    * Execute the slash command interaction

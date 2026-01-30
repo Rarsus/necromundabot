@@ -211,9 +211,7 @@ describe('CommandRegistrationHandler', () => {
         return {
           commands: {
             fetch: async () => {
-              return new Map([
-                ['cmd-1', { name: 'gang', description: 'Gang command' }],
-              ]);
+              return new Map([['cmd-1', { name: 'gang', description: 'Gang command' }]]);
             },
           },
         };

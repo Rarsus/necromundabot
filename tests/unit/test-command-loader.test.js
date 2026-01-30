@@ -39,7 +39,7 @@ describe('CommandLoader', () => {
     if (fs.existsSync(tempCommandsDir)) {
       const removeDir = (dir) => {
         if (fs.existsSync(dir)) {
-          fs.readdirSync(dir).forEach(file => {
+          fs.readdirSync(dir).forEach((file) => {
             const filePath = path.join(dir, file);
             if (fs.statSync(filePath).isDirectory()) {
               removeDir(filePath);
