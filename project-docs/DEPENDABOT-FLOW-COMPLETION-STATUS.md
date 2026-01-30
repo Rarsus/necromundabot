@@ -67,10 +67,6 @@ npm updates:
   security-updates-enabled: true
   security-alert-dismissal-enabled: false
 
-gitsubmodule updates:
-  schedule: daily (was weekly)
-  time: 03:00 UTC
-
 docker updates:
   schedule: daily (was weekly)
   time: 03:00 UTC

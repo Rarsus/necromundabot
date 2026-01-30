@@ -21,17 +21,6 @@ updates:
     security-updates-enabled: true
     security-alert-dismissal-enabled: false
 
-  # Git submodules (for tracking necrobot-* submodule updates)
-  - package-ecosystem: "gitsubmodule"
-    directory: "/"
-    schedule:
-      interval: "daily"
-      time: "03:00"
-      timezone: "UTC"
-    labels:
-      - "dependencies"
-      - "submodules"
-
   # Docker if applicable
   - package-ecosystem: "docker"
     directory: "/"

@@ -76,11 +76,6 @@ security-alert-dismissal-enabled: false
 - ✅ Security updates: Explicitly enabled
 - ✅ Security alerts: Will create PRs (not dismissed)
 
-**Git Submodule Updates:**
-
-- ✅ Interval: Daily at 03:00 UTC
-- ✅ Labels: dependencies, submodules
-
 **Docker Updates:**
 
 - ✅ Interval: Daily at 03:00 UTC
@@ -93,7 +88,7 @@ security-alert-dismissal-enabled: false
 ### Automatic PR Creation
 
 1. **Daily Schedule:** Every day at 03:00 UTC
-2. **Scope:** npm packages, git submodules, docker images
+2. **Scope:** npm packages, docker images
 3. **Security Focus:** High and critical vulnerabilities prioritized
 4. **PR Limit:** Up to 20 open PRs at a time
 5. **Format:** One PR per dependency update (or grouped by type)
