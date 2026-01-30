@@ -168,7 +168,12 @@ jobs:
           echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
           echo "- Audit baseline: Pre-release check (via reusable-audit-check.yml)" >> $GITHUB_STEP_SUMMARY
 
-  # STEP 4: Publish npm packages to GitHub Packages (sequential, dependency order)
+      - name: 🔄 Re-fetch repository after semantic-release
+        run: |
+          git fetch --tags --force
+          git pull --rebase origin ${{ github.ref_name }}
+
+          # STEP 4: Publish npm packages to GitHub Packages (sequential, dependency order)
   publish-utils:
     name: Publish necrobot-utils
     needs: [release]
