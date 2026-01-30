@@ -41,6 +41,7 @@ jobs:
       - name: Configure npm for GitHub Packages
         run: |
           npm config set @rarsus:registry https://npm.pkg.github.com
+          npm config set //npm.pkg.github.com/:_authToken="$NODE_AUTH_TOKEN"
 
       - name: Get package version
         id: version
@@ -89,6 +90,7 @@ jobs:
       - name: Configure npm for GitHub Packages
         run: |
           npm config set @rarsus:registry https://npm.pkg.github.com
+          npm config set //npm.pkg.github.com/:_authToken="$NODE_AUTH_TOKEN"
 
       - name: Get package version
         id: version
@@ -137,6 +139,7 @@ jobs:
       - name: Configure npm for GitHub Packages
         run: |
           npm config set @rarsus:registry https://npm.pkg.github.com
+          npm config set //npm.pkg.github.com/:_authToken="$NODE_AUTH_TOKEN"
 
       - name: Get package version
         id: version
@@ -185,6 +188,7 @@ jobs:
       - name: Configure npm for GitHub Packages
         run: |
           npm config set @rarsus:registry https://npm.pkg.github.com
+          npm config set //npm.pkg.github.com/:_authToken="$NODE_AUTH_TOKEN"
 
       - name: Get package version
         id: version
@@ -232,6 +236,7 @@ jobs:
       - name: Configure npm for GitHub Packages
         run: |
           npm config set @rarsus:registry https://npm.pkg.github.com
+          npm config set //npm.pkg.github.com/:_authToken="$NODE_AUTH_TOKEN"
 
       - name: Verify publication order
         run: |
