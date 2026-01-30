@@ -1,7 +1,7 @@
 name: Deploy - Production Release
 
 on:
-  # Trigger after release workflow completes
+  # Trigger after release workflow completes SUCCESSFULLY
   workflow_run:
     workflows:
       - '🚀 Release & Tag'
@@ -29,17 +29,39 @@ permissions:
   deployments: write
 
 jobs:
+  # Check if triggered workflow was successful before proceeding
+  check-workflow-status:
+    name: 'Check Workflow Status'
+    runs-on: ubuntu-latest
+    outputs:
+      should-deploy: ${{ steps.check.outputs.should-deploy }}
+    steps:
+      - name: 'Check if workflow_run was successful'
+        id: check
+        run: |
+          # Only proceed if workflow_run completed successfully
+          # Or if manually triggered via workflow_dispatch
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+            echo "✅ Manual deployment triggered"
+          elif [[ "${{ github.event.workflow_run.conclusion }}" == "success" ]]; then
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+            echo "✅ Workflow ${{ github.event.workflow_run.name }} completed successfully"
+          else
+            echo "should-deploy=false" >> $GITHUB_OUTPUT
+            echo "❌ Workflow ${{ github.event.workflow_run.name }} did not complete successfully (status: ${{ github.event.workflow_run.conclusion }})"
+          fi
+
   testing:
     name: 'Test Suite Validation'
+    needs: [check-workflow-status]
     uses: ./.github/workflows/testing.yml
     permissions:
       contents: read
       checks: write
       pull-requests: write
-    # Wait for latest code to be ready
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    # Only run if previous workflow was successful
+    if: needs.check-workflow-status.outputs.should-deploy == 'true'
 
   pre-deploy-validation:
     name: 'Pre-Deployment Validation'
