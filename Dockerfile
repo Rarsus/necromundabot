@@ -16,19 +16,16 @@ RUN apk add --no-cache python3 make g++
 # Copy package files (separate layer for better caching)
 COPY package*.json ./
 
-# Install root dependencies only (faster layer caching)
-# Use --ignore-scripts to prevent postinstall hooks (like Husky) from running in Docker
-RUN npm ci --only=production --ignore-scripts && npm ci --only=development --ignore-scripts
-
 # Copy all workspace packages explicitly to ensure they're included in build context
 COPY repos/necrobot-utils ./repos/necrobot-utils
 COPY repos/necrobot-core ./repos/necrobot-core
 COPY repos/necrobot-commands ./repos/necrobot-commands
 COPY repos/necrobot-dashboard ./repos/necrobot-dashboard
 
-# Install workspace dependencies using npm ci for reproducible builds
+# Install all dependencies (root + workspaces) using npm ci for reproducible builds
+# Use --ignore-scripts to prevent postinstall hooks (like Husky) from running in Docker
 # Set HUSKY=0 to skip Husky installation (not needed in Docker)
-RUN HUSKY=0 npm ci --workspaces
+RUN HUSKY=0 npm ci --ignore-scripts --workspaces
 
 # Stage 2: Runtime stage
 FROM node:22-alpine
@@ -68,8 +65,9 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the bot using necrobot-core start script
-CMD ["npm", "start", "--workspace=necrobot-core"]
+# Start the bot directly using node (avoids npm workspace delegation issues)
+# This runs the necrobot-core bot.js entry point
+CMD ["node", "/app/repos/necrobot-core/src/bot.js"]
 
 # Expose port for potential future use (e.g., dashboard)
 EXPOSE 3000
