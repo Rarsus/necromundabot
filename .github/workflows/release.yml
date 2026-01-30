@@ -13,9 +13,9 @@ jobs:
     permissions:
       contents: read
     with:
-      fail-on-critical: 'true'
-      fail-on-baseline-exceeded: 'true'
-      check-baseline: 'true'
+      fail-on-critical: true
+      fail-on-baseline-exceeded: true
+      check-baseline: true
 
   release:
     name: Semantic Release & Versioning
