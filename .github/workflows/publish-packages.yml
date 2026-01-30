@@ -40,6 +40,11 @@ jobs:
         run: |
           npm config set @rarsus:registry https://npm.pkg.github.com
           npm config set //npm.pkg.github.com/:_authToken="$NODE_AUTH_TOKEN"
+          echo "✓ npm registry configured"
+          echo "✓ TOKEN_LENGTH=${#NODE_AUTH_TOKEN}"
+
+      - name: Install dependencies
+        run: npm ci --workspaces
 
       - name: Get package version
         id: version
@@ -87,6 +92,11 @@ jobs:
         run: |
           npm config set @rarsus:registry https://npm.pkg.github.com
           npm config set //npm.pkg.github.com/:_authToken="$NODE_AUTH_TOKEN"
+          echo "✓ npm registry configured for @rarsus"
+          echo "✓ TOKEN_LENGTH=${#NODE_AUTH_TOKEN}"
+
+      - name: Install dependencies
+        run: npm ci --workspaces
 
       - name: Get package version
         id: version
@@ -134,6 +144,11 @@ jobs:
         run: |
           npm config set @rarsus:registry https://npm.pkg.github.com
           npm config set //npm.pkg.github.com/:_authToken="$NODE_AUTH_TOKEN"
+          echo "✓ npm registry configured for @rarsus"
+          echo "✓ TOKEN_LENGTH=${#NODE_AUTH_TOKEN}"
+
+      - name: Install dependencies
+        run: npm ci --workspaces
 
       - name: Get package version
         id: version
@@ -181,6 +196,11 @@ jobs:
         run: |
           npm config set @rarsus:registry https://npm.pkg.github.com
           npm config set //npm.pkg.github.com/:_authToken="$NODE_AUTH_TOKEN"
+          echo "✓ npm registry configured for @rarsus"
+          echo "✓ TOKEN_LENGTH=${#NODE_AUTH_TOKEN}"
+
+      - name: Install dependencies
+        run: npm ci --workspaces
 
       - name: Get package version
         id: version
