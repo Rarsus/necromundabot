@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Rarsus/necrobot-core.git"
+    "url": "https://github.com/Rarsus/necromundabot.git",
+    "directory": "repos/necrobot-core"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"

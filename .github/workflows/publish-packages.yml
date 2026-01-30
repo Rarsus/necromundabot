@@ -59,6 +59,8 @@ jobs:
 
       - name: Publish to GitHub Packages
         if: steps.check.outcome == 'failure'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm publish --workspace=repos/necrobot-utils
           echo "✅ Published @rarsus/necrobot-utils@${{ steps.version.outputs.version }}"
@@ -108,6 +110,8 @@ jobs:
 
       - name: Publish to GitHub Packages
         if: steps.check.outcome == 'failure'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm publish --workspace=repos/necrobot-core
           echo "✅ Published @rarsus/necrobot-core@${{ steps.version.outputs.version }}"
@@ -157,6 +161,8 @@ jobs:
 
       - name: Publish to GitHub Packages
         if: steps.check.outcome == 'failure'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm publish --workspace=repos/necrobot-commands
           echo "✅ Published @rarsus/necrobot-commands@${{ steps.version.outputs.version }}"
@@ -206,6 +212,8 @@ jobs:
 
       - name: Publish to GitHub Packages
         if: steps.check.outcome == 'failure'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm publish --workspace=repos/necrobot-dashboard
           echo "✅ Published @rarsus/necrobot-dashboard@${{ steps.version.outputs.version }}"
