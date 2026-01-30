@@ -23,6 +23,8 @@ jobs:
   # STEP 1: Publish necrobot-utils (foundation, no dependencies)
   publish-utils:
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     outputs:
       published: ${{ steps.check.outcome == 'failure' }}
     steps:
@@ -37,11 +39,8 @@ jobs:
           scope: '@rarsus'
 
       - name: Configure npm for GitHub Packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm config set @rarsus:registry https://npm.pkg.github.com
-          npm config set //npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}
 
       - name: Get package version
         id: version
@@ -59,8 +58,6 @@ jobs:
 
       - name: Publish to GitHub Packages
         if: steps.check.outcome == 'failure'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm publish --workspace=repos/necrobot-utils
           echo "✅ Published @rarsus/necrobot-utils@${{ steps.version.outputs.version }}"
@@ -74,6 +71,8 @@ jobs:
   publish-core:
     needs: publish-utils
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     outputs:
       published: ${{ steps.check.outcome == 'failure' }}
     steps:
@@ -88,11 +87,8 @@ jobs:
           scope: '@rarsus'
 
       - name: Configure npm for GitHub Packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm config set @rarsus:registry https://npm.pkg.github.com
-          npm config set //npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}
 
       - name: Get package version
         id: version
@@ -110,8 +106,6 @@ jobs:
 
       - name: Publish to GitHub Packages
         if: steps.check.outcome == 'failure'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm publish --workspace=repos/necrobot-core
           echo "✅ Published @rarsus/necrobot-core@${{ steps.version.outputs.version }}"
@@ -125,6 +119,8 @@ jobs:
   publish-commands:
     needs: publish-core
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     outputs:
       published: ${{ steps.check.outcome == 'failure' }}
     steps:
@@ -139,11 +135,8 @@ jobs:
           scope: '@rarsus'
 
       - name: Configure npm for GitHub Packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm config set @rarsus:registry https://npm.pkg.github.com
-          npm config set //npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}
 
       - name: Get package version
         id: version
@@ -161,8 +154,6 @@ jobs:
 
       - name: Publish to GitHub Packages
         if: steps.check.outcome == 'failure'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm publish --workspace=repos/necrobot-commands
           echo "✅ Published @rarsus/necrobot-commands@${{ steps.version.outputs.version }}"
@@ -176,6 +167,8 @@ jobs:
   publish-dashboard:
     needs: publish-commands
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     outputs:
       published: ${{ steps.check.outcome == 'failure' }}
     steps:
@@ -190,11 +183,8 @@ jobs:
           scope: '@rarsus'
 
       - name: Configure npm for GitHub Packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm config set @rarsus:registry https://npm.pkg.github.com
-          npm config set //npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}
 
       - name: Get package version
         id: version
@@ -212,8 +202,6 @@ jobs:
 
       - name: Publish to GitHub Packages
         if: steps.check.outcome == 'failure'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm publish --workspace=repos/necrobot-dashboard
           echo "✅ Published @rarsus/necrobot-dashboard@${{ steps.version.outputs.version }}"
@@ -228,6 +216,8 @@ jobs:
     needs: [publish-utils, publish-core, publish-commands, publish-dashboard]
     runs-on: ubuntu-latest
     if: always()
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
