@@ -9,7 +9,7 @@ on:
 jobs:
   pre-release-check:
     name: Pre-Release Vulnerability Check
-    uses: ./.github/workflows/reusable-audit-check.yml
+    uses: ./.github/workflows/reusable-audit-check.yml@main
     permissions:
       contents: read
     with:
