@@ -24,7 +24,7 @@ jobs:
   publish-utils:
     runs-on: ubuntu-latest
     env:
-      NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
     outputs:
       published: ${{ steps.check.outcome == 'failure' }}
     steps:
@@ -76,7 +76,7 @@ jobs:
     needs: publish-utils
     runs-on: ubuntu-latest
     env:
-      NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
     outputs:
       published: ${{ steps.check.outcome == 'failure' }}
     steps:
@@ -128,7 +128,7 @@ jobs:
     needs: publish-core
     runs-on: ubuntu-latest
     env:
-      NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
     outputs:
       published: ${{ steps.check.outcome == 'failure' }}
     steps:
@@ -180,7 +180,7 @@ jobs:
     needs: publish-commands
     runs-on: ubuntu-latest
     env:
-      NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
     outputs:
       published: ${{ steps.check.outcome == 'failure' }}
     steps:
@@ -233,7 +233,7 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     env:
-      NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
