@@ -9,19 +9,25 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 20
     reviewers:
       - "Rarsus"
     labels:
       - "dependencies"
       - "npm"
+    security-updates-enabled: true
+    security-alert-dismissal-enabled: false
 
   # Git submodules (for tracking necrobot-* submodule updates)
   - package-ecosystem: "gitsubmodule"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
     labels:
       - "dependencies"
       - "submodules"
@@ -30,7 +36,9 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
     labels:
       - "dependencies"
       - "docker"
