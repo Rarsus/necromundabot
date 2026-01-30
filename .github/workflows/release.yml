@@ -159,13 +159,7 @@ jobs:
           # that were made BEFORE the release job started
           git push origin main || echo "⚠️ Push failed (might already be up to date)"
 
-      - name: � Re-fetch repository after semantic-release
-        run: |
-          git fetch origin main --force
-          git reset --hard origin/main
-          echo "✅ Repository re-fetched and reset to origin/main"
-
-      - name: �📊 Release summary
+      - name: � Release summary
         if: always()
         run: |
           echo "## 🚀 Release & Versioning" >> $GITHUB_STEP_SUMMARY
@@ -271,6 +265,13 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: 🔄 Initialize git submodules
+        run: |
+          git submodule update --init --recursive
+          echo "✅ Git submodules initialized"
 
       - name: 📦 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
