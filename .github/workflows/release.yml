@@ -10,6 +10,13 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: write
+  packages: write
+  actions: write
+  checks: write
+  pull-requests: write
+
 jobs:
   # First: Run full test suite from testing.yml
   run-tests:
