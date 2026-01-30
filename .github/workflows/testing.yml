@@ -6,6 +6,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Allow this workflow to be called as reusable from other workflows
+  workflow_call:
+    outputs:
+      test-result:
+        description: 'Overall test result (success/failure)'
+        value: ${{ jobs.test-summary.outputs.result }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
