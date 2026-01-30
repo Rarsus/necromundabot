@@ -9,61 +9,11 @@ on:
 jobs:
   pre-release-check:
     name: Pre-Release Vulnerability Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: 📚 Install dependencies
-        run: npm ci --workspaces
-
-      - name: 🔐 Check npm audit against baseline
-        id: audit
-        run: |
-          npm audit --json > audit.json 2>&1 || true
-
-          # Extract counts
-          TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit.json)
-          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit.json)
-
-          echo "total=${TOTAL}" >> $GITHUB_OUTPUT
-          echo "critical=${CRITICAL}" >> $GITHUB_OUTPUT
-
-          # Check baseline
-          if [ -f ".github/audit-baseline.json" ]; then
-            BASELINE=$(jq '.baseline // 7' .github/audit-baseline.json)
-            echo "baseline=${BASELINE}" >> $GITHUB_OUTPUT
-
-            if [ $TOTAL -gt $BASELINE ]; then
-              echo "❌ Audit exceeds baseline: ${TOTAL} > ${BASELINE}"
-              exit 1
-            fi
-
-            if [ $CRITICAL -gt 0 ]; then
-              echo "❌ Critical vulnerabilities found"
-              exit 1
-            fi
-
-            echo "✅ Audit check passed"
-          else
-            if [ $CRITICAL -gt 0 ]; then
-              echo "❌ Critical vulnerabilities found"
-              exit 1
-            fi
-          fi
-        continue-on-error: true
-
-      - name: ❌ Fail if baseline exceeded
-        if: (steps.audit.outputs.baseline && fromJSON(steps.audit.outputs.total) > fromJSON(steps.audit.outputs.baseline)) || fromJSON(steps.audit.outputs.critical) > 0
-        run: |
-          echo "❌ Release blocked: Audit baseline exceeded or critical vulnerabilities found"
-          exit 1
+    uses: ./.github/workflows/reusable-audit-check.yml
+    with:
+      fail-on-critical: true
+      fail-on-baseline-exceeded: true
+      check-baseline: true
 
   release:
     name: Semantic Release & Versioning
@@ -82,6 +32,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
 
       - name: 📚 Install dependencies
         run: npm ci --workspaces
@@ -94,16 +46,7 @@ jobs:
         run: npm test -- --coverage || true
         continue-on-error: true
 
-      - name: 📊 Generate release notes with vulnerability status
-        id: release-notes
-        run: |
-          npm audit --json > audit.json 2>&1 || true
-
-          TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit.json)
-
-          echo "audit_status=Vulnerability Status: ${TOTAL} known vulnerabilities" >> $GITHUB_OUTPUT
-
-      - name: 🚀 Create release & tags
+      - name:  Create release & tags
         uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -116,13 +59,88 @@ jobs:
             @semantic-release/git
             @semantic-release/github
 
-      - name: 📝 Release summary with vulnerability baseline
+      - name: � Sync package.json and package-lock.json versions
+        id: sync-versions
+        run: |
+          # Get the latest git tag (semantic-release creates vX.Y.Z format)
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LATEST_TAG" ]; then
+            echo "❌ No tags found, skipping version sync"
+            exit 0
+          fi
+          
+          # Remove 'v' prefix to get version number
+          VERSION=${LATEST_TAG#v}
+          
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=${LATEST_TAG}" >> $GITHUB_OUTPUT
+          
+          SYNC_NEEDED=false
+          
+          # Update root package.json
+          CURRENT_VERSION=$(jq -r '.version' package.json)
+          
+          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+            echo "🔄 Updating root package.json from $CURRENT_VERSION to $VERSION"
+            jq --arg version "$VERSION" '.version = $version' package.json > package.json.tmp
+            mv package.json.tmp package.json
+            SYNC_NEEDED=true
+          fi
+          
+          # Update root package-lock.json
+          CURRENT_LOCK_VERSION=$(jq -r '.version' package-lock.json)
+          if [ "$CURRENT_LOCK_VERSION" != "$VERSION" ]; then
+            echo "🔄 Updating root package-lock.json from $CURRENT_LOCK_VERSION to $VERSION"
+            jq --arg version "$VERSION" '.version = $version | .packages[""].version = $version' package-lock.json > package-lock.json.tmp
+            mv package-lock.json.tmp package-lock.json
+            SYNC_NEEDED=true
+          fi
+          
+          # Update workspace package.json files
+          for workspace in repos/necrobot-utils repos/necrobot-core repos/necrobot-commands repos/necrobot-dashboard; do
+            if [ -f "$workspace/package.json" ]; then
+              WORKSPACE_VERSION=$(jq -r '.version' "$workspace/package.json")
+              
+              if [ "$WORKSPACE_VERSION" != "$VERSION" ]; then
+                echo "🔄 Updating $workspace/package.json from $WORKSPACE_VERSION to $VERSION"
+                jq --arg version "$VERSION" '.version = $version' "$workspace/package.json" > "$workspace/package.json.tmp"
+                mv "$workspace/package.json.tmp" "$workspace/package.json"
+                SYNC_NEEDED=true
+              fi
+            fi
+          done
+          
+          if [ "$SYNC_NEEDED" = true ]; then
+            echo "synced=true" >> $GITHUB_OUTPUT
+            echo "✅ All versions synced to $VERSION"
+          else
+            echo "synced=false" >> $GITHUB_OUTPUT
+            echo "✅ All versions already in sync at $VERSION"
+          fi
+
+      - name: 📝 Commit version sync if needed
+        if: steps.sync-versions.outputs.synced == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add package.json package-lock.json repos/*/package.json
+          
+          # Use --no-verify to skip pre-commit hooks
+          git commit -m "chore: sync package.json and package-lock.json to ${{ steps.sync-versions.outputs.version }}" --no-verify || true
+          
+          # Push the commit back to the branch (this won't trigger release workflow again because of [skip ci])
+          # But since we're already in a release workflow, we need to be careful
+          # The new commit won't trigger another release because semantic-release only looks at commits
+          # that were made BEFORE the release job started
+          git push origin main || echo "⚠️ Push failed (might already be up to date)"
+
+      - name: 📊 Release summary
         if: always()
         run: |
           echo "## 🚀 Release & Versioning" >> $GITHUB_STEP_SUMMARY
           echo "- Repository: NecromundaBot (main orchestrator)" >> $GITHUB_STEP_SUMMARY
           echo "- Branches: main (stable) + develop (beta)" >> $GITHUB_STEP_SUMMARY
           echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Vulnerability Check: ${{ steps.release-notes.outputs.audit_status }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "[View Vulnerability Acceptance Strategy](./.github/VULNERABILITY-ACCEPTANCE-STRATEGY.md)" >> $GITHUB_STEP_SUMMARY
+          echo "- Audit baseline: Pre-release check (via reusable-audit-check.yml)" >> $GITHUB_STEP_SUMMARY

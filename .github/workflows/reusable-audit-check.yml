@@ -1,0 +1,148 @@
+name: Reusable - npm Audit & Vulnerability Check
+
+on:
+  workflow_call:
+    inputs:
+      fail-on-critical:
+        description: 'Fail workflow if critical vulnerabilities found'
+        required: false
+        default: true
+        type: boolean
+      fail-on-baseline-exceeded:
+        description: 'Fail workflow if vulnerabilities exceed baseline'
+        required: false
+        default: true
+        type: boolean
+      check-baseline:
+        description: 'Check against vulnerability baseline'
+        required: false
+        default: true
+        type: boolean
+    outputs:
+      total:
+        description: 'Total vulnerability count'
+        value: ${{ jobs.audit.outputs.total }}
+      critical:
+        description: 'Critical vulnerability count'
+        value: ${{ jobs.audit.outputs.critical }}
+      high:
+        description: 'High vulnerability count'
+        value: ${{ jobs.audit.outputs.high }}
+      moderate:
+        description: 'Moderate vulnerability count'
+        value: ${{ jobs.audit.outputs.moderate }}
+      low:
+        description: 'Low vulnerability count'
+        value: ${{ jobs.audit.outputs.low }}
+      status:
+        description: 'Audit status (passed/failed)'
+        value: ${{ jobs.audit.outputs.status }}
+
+jobs:
+  audit:
+    name: Run npm Audit
+    runs-on: ubuntu-latest
+    outputs:
+      total: ${{ steps.parse.outputs.total }}
+      critical: ${{ steps.parse.outputs.critical }}
+      high: ${{ steps.parse.outputs.high }}
+      moderate: ${{ steps.parse.outputs.moderate }}
+      low: ${{ steps.parse.outputs.low }}
+      status: ${{ steps.final.outputs.status }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: 🔐 Run npm audit
+        id: audit
+        continue-on-error: true
+        run: |
+          npm audit --json > audit-report.json 2>&1 || true
+          
+          # Extract counts from audit report
+          cat audit-report.json | jq '.'
+
+      - name: 📊 Parse audit results
+        id: parse
+        run: |
+          # Extract vulnerability counts
+          TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit-report.json)
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-report.json)
+          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-report.json)
+          MODERATE=$(jq '.metadata.vulnerabilities.moderate // 0' audit-report.json)
+          LOW=$(jq '.metadata.vulnerabilities.low // 0' audit-report.json)
+          
+          echo "total=${TOTAL}" >> $GITHUB_OUTPUT
+          echo "critical=${CRITICAL}" >> $GITHUB_OUTPUT
+          echo "high=${HIGH}" >> $GITHUB_OUTPUT
+          echo "moderate=${MODERATE}" >> $GITHUB_OUTPUT
+          echo "low=${LOW}" >> $GITHUB_OUTPUT
+          
+          echo "📋 Vulnerability Summary"
+          echo "========================"
+          echo "Total:    ${TOTAL}"
+          echo "Critical: ${CRITICAL}"
+          echo "High:     ${HIGH}"
+          echo "Moderate: ${MODERATE}"
+          echo "Low:      ${LOW}"
+
+      - name: 🔍 Check against baseline
+        id: baseline
+        if: inputs.check-baseline
+        continue-on-error: true
+        run: |
+          if [ -f ".github/audit-baseline.json" ]; then
+            BASELINE=$(jq '.baseline // 7' .github/audit-baseline.json)
+            CURRENT_TOTAL=${{ steps.parse.outputs.total }}
+            
+            echo "Baseline: ${BASELINE}"
+            echo "Current:  ${CURRENT_TOTAL}"
+            
+            if [ "${CURRENT_TOTAL}" -gt "${BASELINE}" ]; then
+              echo "❌ Vulnerabilities EXCEED baseline (${CURRENT_TOTAL} > ${BASELINE})"
+              echo "exceeded=true" >> $GITHUB_OUTPUT
+              exit 1
+            else
+              echo "✅ Within baseline (${CURRENT_TOTAL} ≤ ${BASELINE})"
+              echo "exceeded=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "⚠️ No audit baseline found, skipping baseline check"
+            echo "exceeded=false" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: ❌ Fail if critical vulnerabilities
+        if: inputs.fail-on-critical && steps.parse.outputs.critical > 0
+        run: |
+          echo "❌ CRITICAL vulnerabilities found: ${{ steps.parse.outputs.critical }}"
+          exit 1
+
+      - name: ❌ Fail if baseline exceeded
+        if: inputs.fail-on-baseline-exceeded && steps.baseline.outputs.exceeded == 'true'
+        run: |
+          echo "❌ Vulnerabilities exceed baseline"
+          exit 1
+
+      - name: ✅ Determine final status
+        id: final
+        run: |
+          CRITICAL=${{ steps.parse.outputs.critical }}
+          EXCEEDED=${{ steps.baseline.outputs.exceeded }}
+          
+          if [ "${CRITICAL}" -gt 0 ] || [ "${EXCEEDED}" = "true" ]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+          else
+            echo "status=passed" >> $GITHUB_OUTPUT
+          fi

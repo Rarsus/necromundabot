@@ -19,265 +19,19 @@ permissions:
 jobs:
   unit-tests:
     name: 'Unit Tests (Node 22.x)'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 📦 Setup Node.js 22.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: 'npm'
-          cache-dependency-path: '**/package-lock.json'
-
-      - name: 📚 Install dependencies
-        run: npm ci --workspaces
-
-      - name: ✅ Validate Node.js version
-        run: |
-          echo "🔍 Checking Node.js version..."
-          node --version
-          npm --version
-
-          if npm run validate:node; then
-            echo "✅ Node.js version validated"
-          else
-            echo "❌ Node.js version does not meet requirements"
-            exit 1
-          fi
-
-      - name: 🧪 Run unit tests
-        id: test
-        run: |
-          npm run test:quick -- \
-            --coverage \
-            --collectCoverageFrom='src/**/*.js' \
-            --collectCoverageFrom='!src/**/*.test.js' \
-            --json \
-            --outputFile=test-results.json \
-            2>&1 | tee test-output.txt
-
-          TEST_EXIT_CODE=$?
-          echo "exit_code=${TEST_EXIT_CODE}" >> $GITHUB_OUTPUT
-
-          # Extract test counts
-          PASS_COUNT=$(grep -oP '\d+(?= passed)' test-output.txt | head -1 || echo "0")
-          FAIL_COUNT=$(grep -oP '\d+(?= failed)' test-output.txt | head -1 || echo "0")
-          echo "passed=${PASS_COUNT}" >> $GITHUB_OUTPUT
-          echo "failed=${FAIL_COUNT}" >> $GITHUB_OUTPUT
-
-          exit 0  # Don't fail, we'll handle it below
-
-      - name: 📊 Upload coverage
-        uses: codecov/codecov-action@v3
-        if: always()
-        with:
-          files: ./coverage/coverage-final.json
-          flags: unittests
-          name: unit-tests
-          fail_ci_if_error: false
-
-      - name: ❌ Fail if tests failed
-        if: steps.test.outputs.exit_code != 0
-        run: exit 1
+    uses: ./.github/workflows/reusable-tests.yml
+    with:
+      test-type: 'unit'
+      enable-coverage: true
 
   integration-tests:
     name: 'Integration Tests'
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/reusable-tests.yml
     needs: [unit-tests]
     if: always() && needs.unit-tests.result != 'failure'
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: 'npm'
-          cache-dependency-path: '**/package-lock.json'
-
-      - name: 📚 Install dependencies
-        run: npm ci --workspaces
-
-      - name: ✅ Validate Node.js version
-        run: |
-          echo "🔍 Checking Node.js version..."
-          node --version
-          npm --version
-
-          if npm run validate:node; then
-            echo "✅ Node.js version validated"
-          else
-            echo "❌ Node.js version does not meet requirements"
-            exit 1
-          fi
-
-      - name: 🧪 Run integration tests
-        id: test
-        run: |
-          npm run test:integration -- \
-            --coverage \
-            --collectCoverageFrom='src/**/*.js' \
-            --collectCoverageFrom='!src/**/*.test.js' \
-            --json \
-            --outputFile=test-results-integration.json \
-            2>&1 | tee test-output-integration.txt
-
-          TEST_EXIT_CODE=$?
-          echo "exit_code=${TEST_EXIT_CODE}" >> $GITHUB_OUTPUT
-
-          # Extract test counts
-          PASS_COUNT=$(grep -oP '\d+(?= passed)' test-output-integration.txt | head -1 || echo "0")
-          FAIL_COUNT=$(grep -oP '\d+(?= failed)' test-output-integration.txt | head -1 || echo "0")
-          echo "passed=${PASS_COUNT}" >> $GITHUB_OUTPUT
-          echo "failed=${FAIL_COUNT}" >> $GITHUB_OUTPUT
-
-          exit 0
-
-      - name: 📊 Upload coverage
-        uses: codecov/codecov-action@v3
-        if: always()
-        with:
-          files: ./coverage/coverage-final.json
-          flags: integration
-          name: integration-tests
-          fail_ci_if_error: false
-
-      - name: ❌ Fail if tests failed
-        if: steps.test.outputs.exit_code != 0
-        run: exit 1
-
-  coverage-validation:
-    name: 'Coverage Thresholds'
-    runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests]
-    # TEMPORARILY DISABLED: Coverage validation disabled while tests are refactored
-    # Command tests currently don't load actual command implementations, causing 0% coverage
-    # See: https://github.com/Rarsus/verabot2.0/issues/coverage-refactoring
-    # TODO: Re-enable once command tests are refactored to import and execute actual commands
-    if: false
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: 'npm'
-          cache-dependency-path: '**/package-lock.json'
-
-      - name: 📚 Install dependencies
-        run: npm ci
-
-      - name: 📊 Generate coverage report
-        id: coverage
-        run: |
-          npm run test:quick -- --coverage --silent 2>&1
-          npm run coverage:report 2>&1 | tee coverage-report.txt
-
-          # Extract coverage numbers
-          LINES=$(grep -oP 'Lines\s+:\s+\K[\d.]+' coverage-report.txt | head -1 || echo "0")
-          FUNCTIONS=$(grep -oP 'Functions\s+:\s+\K[\d.]+' coverage-report.txt | head -1 || echo "0")
-          BRANCHES=$(grep -oP 'Branches\s+:\s+\K[\d.]+' coverage-report.txt | head -1 || echo "0")
-
-          echo "lines=${LINES}" >> $GITHUB_OUTPUT
-          echo "functions=${FUNCTIONS}" >> $GITHUB_OUTPUT
-          echo "branches=${BRANCHES}" >> $GITHUB_OUTPUT
-
-      - name: 🎯 Validate coverage thresholds
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const lines = parseFloat('${{ steps.coverage.outputs.lines }}') || 0;
-            const functions = parseFloat('${{ steps.coverage.outputs.functions }}') || 0;
-            const branches = parseFloat('${{ steps.coverage.outputs.branches }}') || 0;
-
-            // REALISTIC baselines (Jan 2026): Many core services lack tests (excluded from collection)
-            // After excluding untested files, the tested code achieves these thresholds
-            const MIN_LINES = 25;
-            const MIN_FUNCTIONS = 25;
-            const MIN_BRANCHES = 20;
-
-            // Target thresholds: Gradual improvement path
-            // Goal: Eventually add tests for all core services
-            const TARGET_LINES = 80;
-            const TARGET_FUNCTIONS = 85;
-            const TARGET_BRANCHES = 75;
-
-            let message = '## 📊 Coverage Report\n\n';
-            message += '| Metric | Coverage | Minimum | Target | Status |\n';
-            message += '|--------|----------|---------|--------|--------|\n';
-            message += '**Note**: Coverage thresholds are realistic for tested code.\n';
-            message += 'Many service files are excluded from collection as they lack tests.\n\n';
-
-            let hasCritical = false;
-            let hasWarning = false;
-
-            // Lines
-            let linesStatus = '❌ Critical';
-            if (lines >= MIN_LINES) {
-              linesStatus = lines >= TARGET_LINES ? '✅ Target' : '⚠️ Acceptable';
-              if (lines < TARGET_LINES) hasWarning = true;
-            } else {
-              hasCritical = true;
-            }
-            message += `| Lines | ${lines.toFixed(1)}% | ${MIN_LINES}% | ${TARGET_LINES}% | ${linesStatus} |\n`;
-
-            // Functions
-            let functionsStatus = '❌ Critical';
-            if (functions >= MIN_FUNCTIONS) {
-              functionsStatus = functions >= TARGET_FUNCTIONS ? '✅ Target' : '⚠️ Acceptable';
-              if (functions < TARGET_FUNCTIONS) hasWarning = true;
-            } else {
-              hasCritical = true;
-            }
-            message += `| Functions | ${functions.toFixed(1)}% | ${MIN_FUNCTIONS}% | ${TARGET_FUNCTIONS}% | ${functionsStatus} |\n`;
-
-            // Branches
-            let branchesStatus = '❌ Critical';
-            if (branches >= MIN_BRANCHES) {
-              branchesStatus = branches >= TARGET_BRANCHES ? '✅ Target' : '⚠️ Acceptable';
-              if (branches < TARGET_BRANCHES) hasWarning = true;
-            } else {
-              hasCritical = true;
-            }
-            message += `| Branches | ${branches.toFixed(1)}% | ${MIN_BRANCHES}% | ${TARGET_BRANCHES}% | ${branchesStatus} |\n`;
-
-            message += '\n';
-
-            if (hasCritical) {
-              message += '❌ **Coverage below minimum thresholds**\n\n';
-              message += 'Add more tests to reach minimum coverage:\n';
-              message += `- Lines: need ${(MIN_LINES - lines).toFixed(1)}% more\n`;
-              message += `- Functions: need ${(MIN_FUNCTIONS - functions).toFixed(1)}% more\n`;
-              message += `- Branches: need ${(MIN_BRANCHES - branches).toFixed(1)}% more\n`;
-            } else if (hasWarning) {
-              message += '⚠️ **Coverage above minimum but below target**\n\n';
-              message += 'Consider adding tests to reach target coverage (recommended).\n';
-            } else {
-              message += '✅ **Coverage meets or exceeds all thresholds**\n\n';
-              message += 'Great job! Coverage goals achieved.\n';
-            }
-
-            core.notice(message);
-
-            if (hasCritical) {
-              core.setFailed('Coverage below minimum thresholds');
-            }
-
-      - name: 📈 Upload coverage artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage-report.txt
-          retention-days: 7
+    with:
+      test-type: 'integration'
+      enable-coverage: true
 
   test-summary:
     name: 'Test Summary'
@@ -299,7 +53,6 @@ jobs:
             let summary = '## 🧪 Test Execution Summary\n\n';
             summary += `${unitResult === 'success' ? '✅' : '❌'} Unit Tests (Node 22)\n`;
             summary += `${integrationResult === 'success' ? '✅' : '❌'} Integration Tests\n`;
-            summary += `⏸️ Coverage Validation (temporarily disabled for test refactoring)\n`;
 
             if (allPassed) {
               core.notice('✅ All tests passed!');
@@ -312,3 +65,4 @@ jobs:
           needs.unit-tests.result == 'failure' ||
           needs.integration-tests.result == 'failure'
         run: exit 1
+

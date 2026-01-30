@@ -1,0 +1,150 @@
+name: Reusable - Lint & Format Check
+
+on:
+  workflow_call:
+    inputs:
+      comment-on-pr:
+        description: 'Post results as PR comment'
+        required: false
+        default: true
+        type: boolean
+      fail-on-error:
+        description: 'Fail workflow on lint/format errors'
+        required: false
+        default: true
+        type: boolean
+    outputs:
+      lint-status:
+        description: 'Lint check status (passed/failed)'
+        value: ${{ jobs.lint-format.outputs.lint-status }}
+      format-status:
+        description: 'Format check status (passed/failed)'
+        value: ${{ jobs.lint-format.outputs.format-status }}
+
+jobs:
+  lint-format:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    outputs:
+      lint-status: ${{ steps.final.outputs.lint-status }}
+      format-status: ${{ steps.final.outputs.format-status }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: 🔍 Lint code
+        id: lint
+        continue-on-error: true
+        run: |
+          npm run lint 2>&1 | tee lint-output.txt
+          LINT_EXIT_CODE=$?
+          echo "exit_code=${LINT_EXIT_CODE}" >> $GITHUB_OUTPUT
+          exit $LINT_EXIT_CODE
+
+      - name: ✨ Check formatting
+        id: format
+        continue-on-error: true
+        run: |
+          npm run format:check 2>&1 | tee format-output.txt
+          FORMAT_EXIT_CODE=$?
+          echo "exit_code=${FORMAT_EXIT_CODE}" >> $GITHUB_OUTPUT
+          exit $FORMAT_EXIT_CODE
+
+      - name: 📋 Determine status
+        id: final
+        run: |
+          LINT_CODE=${{ steps.lint.outputs.exit_code }}
+          FORMAT_CODE=${{ steps.format.outputs.exit_code }}
+          
+          if [ "${LINT_CODE}" = "0" ]; then
+            echo "lint-status=passed" >> $GITHUB_OUTPUT
+          else
+            echo "lint-status=failed" >> $GITHUB_OUTPUT
+          fi
+          
+          if [ "${FORMAT_CODE}" = "0" ]; then
+            echo "format-status=passed" >> $GITHUB_OUTPUT
+          else
+            echo "format-status=failed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 💬 Comment on PR
+        if: inputs.comment-on-pr && github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            let message = '## 🔍 Code Quality Check\n\n';
+            let hasIssues = false;
+            
+            const lintStatus = '${{ steps.final.outputs.lint-status }}';
+            const formatStatus = '${{ steps.final.outputs.format-status }}';
+            
+            if (lintStatus === 'passed') {
+              message += '✅ **Linting passed**\n\n';
+            } else {
+              message += '❌ **Linting issues found**\n';
+              if (fs.existsSync('lint-output.txt')) {
+                const output = fs.readFileSync('lint-output.txt', 'utf8');
+                message += '```\n' + output.slice(0, 500) + '\n```\n\n';
+              }
+              hasIssues = true;
+            }
+            
+            if (formatStatus === 'passed') {
+              message += '✅ **Formatting passed**\n\n';
+            } else {
+              message += '❌ **Formatting issues found**\n';
+              if (fs.existsSync('format-output.txt')) {
+                const output = fs.readFileSync('format-output.txt', 'utf8');
+                message += '```\n' + output.slice(0, 500) + '\n```\n\n';
+                message += 'Run `npm run lint:fix && npm run format` to fix.\n\n';
+              }
+              hasIssues = true;
+            }
+            
+            // Find and update existing comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            
+            const existingComment = comments.data.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Code Quality Check')
+            );
+            
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: message
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: message
+              });
+            }
+
+      - name: ❌ Fail if errors found
+        if: inputs.fail-on-error && (steps.final.outputs.lint-status == 'failed' || steps.final.outputs.format-status == 'failed')
+        run: exit 1
