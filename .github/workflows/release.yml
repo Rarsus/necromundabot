@@ -6,9 +6,24 @@ on:
       - main
       - develop
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  # First: Run full test suite from testing.yml
+  run-tests:
+    name: Run Full Test Suite
+    uses: ./.github/workflows/testing.yml
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+
+  # Second: Vulnerability check
   pre-release-check:
     name: Pre-Release Vulnerability Check
+    needs: [run-tests]
     uses: ./.github/workflows/reusable-audit-check.yml
     permissions:
       contents: read
@@ -42,11 +57,11 @@ jobs:
 
       - name: ✅ Validate code
         run: npm run lint
-        continue-on-error: true
+        continue-on-error: false
 
-      - name: 🧪 Run tests
-        run: npm test -- --coverage || true
-        continue-on-error: true
+      - name: 🔍 Run quick format check
+        run: npm run format:check
+        continue-on-error: false
 
       - name:  Create release & tags
         uses: cycjimmy/semantic-release-action@v4
