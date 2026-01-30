@@ -16,16 +16,17 @@ RUN apk add --no-cache python3 make g++
 # Copy package files (separate layer for better caching)
 COPY package*.json ./
 
-# Copy all workspace packages explicitly to ensure they're included in build context
+# Copy only the workspace packages needed for the bot runtime
+# Note: necrobot-dashboard (Next.js/React) is NOT included - reduces image from 942MB to ~200MB
 COPY repos/necrobot-utils ./repos/necrobot-utils
 COPY repos/necrobot-core ./repos/necrobot-core
 COPY repos/necrobot-commands ./repos/necrobot-commands
-COPY repos/necrobot-dashboard ./repos/necrobot-dashboard
 
-# Install all dependencies (root + workspaces) using npm ci for reproducible builds
+# Install production dependencies only (excluding dev/test tools, Next.js, React, etc.)
 # Use --ignore-scripts to prevent postinstall hooks (like Husky) from running in Docker
 # Set HUSKY=0 to skip Husky installation (not needed in Docker)
-RUN HUSKY=0 npm ci --ignore-scripts --workspaces
+# --workspaces-update-depth=0 prevents npm from installing dashboard workspace
+RUN HUSKY=0 npm ci --ignore-scripts --omit=dev --workspaces
 
 # Stage 2: Runtime stage
 FROM node:22-alpine
