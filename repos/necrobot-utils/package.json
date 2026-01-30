@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Rarsus/necromundabot.git",
+    "url": "git+https://github.com/Rarsus/necromundabot.git",
     "directory": "repos/necrobot-utils"
   },
   "publishConfig": {
