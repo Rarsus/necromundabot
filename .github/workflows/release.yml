@@ -168,38 +168,88 @@ jobs:
           echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
           echo "- Audit baseline: Pre-release check (via reusable-audit-check.yml)" >> $GITHUB_STEP_SUMMARY
 
-  # STEP 4: Build and publish artifacts
-  publish-artifacts:
-    name: Publish Artifacts (Docker & npm)
+  # STEP 4: Publish npm packages to GitHub Packages (sequential, dependency order)
+  publish-utils:
+    name: Publish necrobot-utils
     needs: [release]
+    uses: ./.github/workflows/reusable-publish-package.yml
+    with:
+      package-name: necrobot-utils
+      workspace-path: repos/necrobot-utils
+      scope: '@rarsus'
+    secrets:
+      PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+
+  publish-core:
+    name: Publish necrobot-core
+    needs: [publish-utils]
+    uses: ./.github/workflows/reusable-publish-package.yml
+    with:
+      package-name: necrobot-core
+      workspace-path: repos/necrobot-core
+      scope: '@rarsus'
+    secrets:
+      PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+
+  publish-commands:
+    name: Publish necrobot-commands
+    needs: [publish-core]
+    uses: ./.github/workflows/reusable-publish-package.yml
+    with:
+      package-name: necrobot-commands
+      workspace-path: repos/necrobot-commands
+      scope: '@rarsus'
+    secrets:
+      PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+
+  publish-dashboard:
+    name: Publish necrobot-dashboard
+    needs: [publish-commands]
+    uses: ./.github/workflows/reusable-publish-package.yml
+    with:
+      package-name: necrobot-dashboard
+      workspace-path: repos/necrobot-dashboard
+      scope: '@rarsus'
+    secrets:
+      PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+
+  # STEP 5: Verify all packages published successfully
+  verify-packages:
+    name: Verify Published Packages
+    needs: [publish-utils, publish-core, publish-commands, publish-dashboard]
     runs-on: ubuntu-latest
-    if: needs.release.result == 'success'
-    permissions:
-      contents: read
-      packages: write
-      actions: write
+    if: always()
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
     steps:
-      - name: 🔔 Trigger publish-packages workflow
-        uses: actions/github-script@v7
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          script: |
-            github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'publish-packages.yml',
-              ref: 'main'
-            });
-            console.log('✅ Triggered publish-packages workflow');
+          node-version: '22'
 
-      - name: 📋 Log artifact publishing
+      - name: 🔐 Configure npm
         run: |
-          echo "## 📦 Artifact Publishing Initiated" >> $GITHUB_STEP_SUMMARY
-          echo "- Docker images: Will be built and pushed to GHCR" >> $GITHUB_STEP_SUMMARY
-          echo "- npm packages: Will be published to GitHub Packages" >> $GITHUB_STEP_SUMMARY
-          echo "- Publishing order: utils → core → commands → dashboard" >> $GITHUB_STEP_SUMMARY
-          echo "- Status: Publishing workflow triggered" >> $GITHUB_STEP_SUMMARY
+          npm config set @rarsus:registry https://npm.pkg.github.com
+          npm config set //npm.pkg.github.com/:_authToken="$NODE_AUTH_TOKEN"
 
-  # STEP 5: Build and tag Docker image with semantic version (runs in parallel with publish-artifacts)
+      - name: 🔍 Verify all packages in registry
+        run: |
+          echo "## 📦 Package Registry Verification" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          for pkg in necrobot-utils necrobot-core necrobot-commands necrobot-dashboard; do
+            if npm view @rarsus/$pkg >/dev/null 2>&1; then
+              VERSION=$(npm view @rarsus/$pkg version)
+              echo "✅ @rarsus/$pkg@$VERSION" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ @rarsus/$pkg (not yet available)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+  # STEP 6: Build and tag Docker image with semantic version (runs in parallel with publish jobs)
   build-docker-image:
     name: 'Build & Tag Docker Image'
     needs: [release]
