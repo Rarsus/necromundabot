@@ -20,8 +20,11 @@ COPY package*.json ./
 # Use --ignore-scripts to prevent postinstall hooks (like Husky) from running in Docker
 RUN npm ci --only=production --ignore-scripts && npm ci --only=development --ignore-scripts
 
-# Copy workspace packages
-COPY repos ./repos
+# Copy all workspace packages explicitly to ensure they're included in build context
+COPY repos/necrobot-utils ./repos/necrobot-utils
+COPY repos/necrobot-core ./repos/necrobot-core
+COPY repos/necrobot-commands ./repos/necrobot-commands
+COPY repos/necrobot-dashboard ./repos/necrobot-dashboard
 
 # Install workspace dependencies using npm ci for reproducible builds
 # Set HUSKY=0 to skip Husky installation (not needed in Docker)
