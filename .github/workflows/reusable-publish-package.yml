@@ -80,9 +80,9 @@ jobs:
 
       - name: 🔍 Check if version already published
         id: check
-        continue-on-error: true
         run: |
-          npm view ${{ inputs.scope }}/${{ inputs.package-name }}@${{ steps.version.outputs.version }} >/dev/null 2>&1
+          # Use || true to allow npm view to fail without exiting the script
+          npm view ${{ inputs.scope }}/${{ inputs.package-name }}@${{ steps.version.outputs.version }} >/dev/null 2>&1 || true
           if [ $? -eq 0 ]; then
             echo "already-published=true" >> $GITHUB_OUTPUT
             echo "ℹ️  Version already exists in registry"
