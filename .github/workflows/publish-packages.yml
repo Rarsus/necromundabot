@@ -54,15 +54,13 @@ jobs:
         id: check
         continue-on-error: true
         run: |
-          cd repos/necrobot-utils
           npm view @rarsus/necrobot-utils@${{ steps.version.outputs.version }}
           echo "already_published=true" >> $GITHUB_OUTPUT
 
       - name: Publish to GitHub Packages
         if: steps.check.outcome == 'failure'
         run: |
-          cd repos/necrobot-utils
-          npm publish
+          npm publish --workspace=repos/necrobot-utils
           echo "✅ Published @rarsus/necrobot-utils@${{ steps.version.outputs.version }}"
 
       - name: Skip if already published
@@ -105,15 +103,13 @@ jobs:
         id: check
         continue-on-error: true
         run: |
-          cd repos/necrobot-core
           npm view @rarsus/necrobot-core@${{ steps.version.outputs.version }}
           echo "already_published=true" >> $GITHUB_OUTPUT
 
       - name: Publish to GitHub Packages
         if: steps.check.outcome == 'failure'
         run: |
-          cd repos/necrobot-core
-          npm publish
+          npm publish --workspace=repos/necrobot-core
           echo "✅ Published @rarsus/necrobot-core@${{ steps.version.outputs.version }}"
 
       - name: Skip if already published
@@ -156,15 +152,13 @@ jobs:
         id: check
         continue-on-error: true
         run: |
-          cd repos/necrobot-commands
           npm view @rarsus/necrobot-commands@${{ steps.version.outputs.version }}
           echo "already_published=true" >> $GITHUB_OUTPUT
 
       - name: Publish to GitHub Packages
         if: steps.check.outcome == 'failure'
         run: |
-          cd repos/necrobot-commands
-          npm publish
+          npm publish --workspace=repos/necrobot-commands
           echo "✅ Published @rarsus/necrobot-commands@${{ steps.version.outputs.version }}"
 
       - name: Skip if already published
@@ -207,15 +201,13 @@ jobs:
         id: check
         continue-on-error: true
         run: |
-          cd repos/necrobot-dashboard
           npm view @rarsus/necrobot-dashboard@${{ steps.version.outputs.version }}
           echo "already_published=true" >> $GITHUB_OUTPUT
 
       - name: Publish to GitHub Packages
         if: steps.check.outcome == 'failure'
         run: |
-          cd repos/necrobot-dashboard
-          npm publish
+          npm publish --workspace=repos/necrobot-dashboard
           echo "✅ Published @rarsus/necrobot-dashboard@${{ steps.version.outputs.version }}"
 
       - name: Skip if already published

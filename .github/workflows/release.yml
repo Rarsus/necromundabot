@@ -208,9 +208,9 @@ jobs:
       contents: read
       packages: write
     outputs:
-      image: ${{ steps.meta.outputs.image }}
+      image: ${{ steps.output.outputs.image }}
       version: ${{ steps.get-version.outputs.version }}
-      image-full: ${{ steps.meta.outputs.image-full }}
+      image-full: ${{ steps.output.outputs.image-full }}
 
     steps:
       - name: 📥 Checkout code
@@ -256,9 +256,12 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: 📝 Set output variables
+        id: output
         run: |
-          echo "image=ghcr.io/${{ github.repository }}" >> $GITHUB_OUTPUT
+          IMAGE_NAME="ghcr.io/${{ github.repository }}"
+          echo "image=${IMAGE_NAME}" >> $GITHUB_OUTPUT
           echo "image-full=${{ steps.meta.outputs.tags }}" >> $GITHUB_OUTPUT
+          echo "✅ Output variables set"
 
       - name: ✅ Docker build summary
         run: |
