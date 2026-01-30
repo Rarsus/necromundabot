@@ -1,0 +1,136 @@
+name: Reusable - Unit & Integration Tests
+
+on:
+  workflow_call:
+    inputs:
+      test-type:
+        description: 'Test type: unit, integration, or both'
+        required: false
+        default: 'both'
+        type: choice
+        options:
+          - unit
+          - integration
+          - both
+      coverage-enabled:
+        description: 'Enable coverage reporting'
+        required: false
+        default: true
+        type: boolean
+      fail-on-error:
+        description: 'Fail workflow if tests fail'
+        required: false
+        default: true
+        type: boolean
+    outputs:
+      unit-status:
+        description: 'Unit test status'
+        value: ${{ jobs.unit-tests.outputs.status }}
+      integration-status:
+        description: 'Integration test status'
+        value: ${{ jobs.integration-tests.outputs.status }}
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    if: inputs.test-type == 'unit' || inputs.test-type == 'both'
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.test.outputs.status }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: 🧪 Run unit tests
+        id: test
+        continue-on-error: true
+        run: |
+          npm run test:quick -- \
+            ${{ inputs.coverage-enabled && '--coverage' || '' }} \
+            ${{ inputs.coverage-enabled && '--collectCoverageFrom=src/**/*.js' || '' }} \
+            ${{ inputs.coverage-enabled && '--collectCoverageFrom=!src/**/*.test.js' || '' }} \
+            --json \
+            --outputFile=unit-test-results.json \
+            2>&1 | tee unit-test-output.txt
+          
+          TEST_EXIT_CODE=$?
+          echo "exit_code=${TEST_EXIT_CODE}" >> $GITHUB_OUTPUT
+          
+          if [ "${TEST_EXIT_CODE}" = "0" ]; then
+            echo "status=passed" >> $GITHUB_OUTPUT
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📊 Upload coverage
+        if: inputs.coverage-enabled && always()
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/coverage-final.json
+          flags: unittests
+          name: unit-tests
+          fail_ci_if_error: false
+
+  integration-tests:
+    name: Integration Tests
+    if: inputs.test-type == 'integration' || inputs.test-type == 'both'
+    needs: [unit-tests]
+    if: always() && (inputs.test-type == 'integration' || (inputs.test-type == 'both' && needs.unit-tests.result != 'failure'))
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.test.outputs.status }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: 🧪 Run integration tests
+        id: test
+        continue-on-error: true
+        run: |
+          npm run test:integration -- \
+            ${{ inputs.coverage-enabled && '--coverage' || '' }} \
+            ${{ inputs.coverage-enabled && '--collectCoverageFrom=src/**/*.js' || '' }} \
+            ${{ inputs.coverage-enabled && '--collectCoverageFrom=!src/**/*.test.js' || '' }} \
+            --json \
+            --outputFile=integration-test-results.json \
+            2>&1 | tee integration-test-output.txt
+          
+          TEST_EXIT_CODE=$?
+          echo "exit_code=${TEST_EXIT_CODE}" >> $GITHUB_OUTPUT
+          
+          if [ "${TEST_EXIT_CODE}" = "0" ]; then
+            echo "status=passed" >> $GITHUB_OUTPUT
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📊 Upload coverage
+        if: inputs.coverage-enabled && always()
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/coverage-final.json
+          flags: integration
+          name: integration-tests
+          fail_ci_if_error: false

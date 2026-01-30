@@ -26,12 +26,23 @@ permissions:
   deployments: write
 
 jobs:
-  pre-deploy-validation:
-    name: 'Pre-Deployment Validation'
-    runs-on: ubuntu-latest
+  testing:
+    name: 'Test Suite Validation'
+    uses: ./.github/workflows/testing.yml
+    # Wait for latest code to be ready
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+
+  pre-deploy-validation:
+    name: 'Pre-Deployment Validation'
+    runs-on: ubuntu-latest
+    # Wait for testing workflow to pass before proceeding
+    needs: [testing]
+    if: |
+      needs.testing.result == 'success' &&
+      (github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'))
 
     steps:
       - name: 📥 Checkout code
@@ -47,76 +58,46 @@ jobs:
       - name: 📚 Install dependencies
         run: npm ci --workspaces
 
-      - name: 🔍 Quick lint check
-        id: lint
-        continue-on-error: true
-        run: npm run lint
-
-      - name: 🧪 Quick test check
-        id: test
-        continue-on-error: true
-        run: npm run test:quick -- --silent
-
-      - name: 📊 Security audit
+      - name: 📊 Run security audit
         id: audit
         continue-on-error: true
         run: |
-          set +e  # Don't fail on npm audit exit code
-          
-          # Run full audit and save output
-          npm audit --json > audit-full.json 2>/dev/null
-          
-          # Check for CRITICAL vulnerabilities first (hard block)
-          CRITICAL=$(npm audit --audit-level=critical 2>&1 | grep -c "critical" || echo "0")
-          
-          # Check against accepted vulnerabilities baseline
-          if [ -f ".github/audit-baseline.json" ]; then
-            # Get current total vulnerability count
-            CURRENT_TOTAL=$(jq '.metadata.vulnerabilities.total' audit-full.json 2>/dev/null || echo "0")
-            BASELINE_TOTAL=$(jq '.baseline // 12' .github/audit-baseline.json)
-            
-            # Only fail if CURRENT exceeds the BASELINE (NEW vulnerabilities)
-            if [ "$CURRENT_TOTAL" -gt "$BASELINE_TOTAL" ]; then
-              EXCEEDED="1"
-            else
-              EXCEEDED="0"
-            fi
-          else
-            # No baseline file - use strict critical-only check
-            EXCEEDED="$CRITICAL"
-          fi
-          
-          echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
-          echo "exceeded=$EXCEEDED" >> $GITHUB_OUTPUT
-          set -e
+          npm audit --json > audit-full.json 2>&1 || true
 
-      - name: ⛔ Fail if critical security issues
+          # Extract counts
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-full.json)
+          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-full.json)
+          echo "critical=${CRITICAL}" >> $GITHUB_OUTPUT
+          echo "high=${HIGH}" >> $GITHUB_OUTPUT
+
+          # Check baseline
+          if [ -f ".github/audit-baseline.json" ]; then
+            BASELINE=$(jq '.baseline // 7' .github/audit-baseline.json)
+            TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit-full.json)
+            if [ $TOTAL -gt $BASELINE ]; then
+              echo "baseline_exceeded=true" >> $GITHUB_OUTPUT
+            else
+              echo "baseline_exceeded=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: ⛔ Fail if critical vulnerabilities found
         if: steps.audit.outputs.critical > 0
         run: |
-          echo "❌ Critical (CVSS 9.0+) vulnerabilities found - deployment blocked"
+          echo "❌ Critical vulnerabilities found - deployment blocked"
           exit 1
 
-      - name: ⛔ Fail if vulnerabilities exceed accepted baseline
-        if: steps.audit.outputs.exceeded > 0
+      - name: ⛔ Fail if baseline exceeded
+        if: steps.audit.outputs.baseline_exceeded == 'true'
         run: |
-          echo "❌ Vulnerabilities exceed accepted baseline - deployment blocked"
-          echo "Run: npm audit to see detailed report"
-          exit 1
-
-      - name: ⛔ Fail if linting failed
-        if: steps.lint.outcome == 'failure'
-        run: |
-          echo "❌ Code quality checks failed - deployment blocked"
-          exit 1
-
-      - name: ⛔ Fail if tests failed
-        if: steps.test.outcome == 'failure'
-        run: |
-          echo "❌ Tests failed - deployment blocked"
+          echo "❌ Vulnerabilities exceed baseline - deployment blocked"
           exit 1
 
       - name: ✅ Pre-deployment validation passed
         run: echo "Pre-deployment validation completed successfully"
+
+
+
 
   build-and-push-docker:
     name: 'Build & Push Docker Image'

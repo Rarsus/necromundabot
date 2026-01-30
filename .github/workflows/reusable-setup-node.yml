@@ -1,0 +1,43 @@
+name: Reusable - Setup Node.js & Dependencies
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js version'
+        required: false
+        default: '22'
+        type: string
+      install-workspaces:
+        description: 'Install workspaces dependencies'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  setup:
+    name: Setup Node.js
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: 📚 Install dependencies
+        if: inputs.install-workspaces
+        run: npm ci --workspaces
+
+      - name: ✅ Validate Node.js setup
+        run: |
+          echo "✅ Node.js version: $(node --version)"
+          echo "✅ npm version: $(npm --version)"
