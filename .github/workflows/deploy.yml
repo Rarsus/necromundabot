@@ -52,78 +52,9 @@ jobs:
             echo "❌ Workflow ${{ github.event.workflow_run.name }} did not complete successfully (status: ${{ github.event.workflow_run.conclusion }})"
           fi
 
-  testing:
-    name: 'Test Suite Validation'
-    needs: [check-workflow-status]
-    uses: ./.github/workflows/testing.yml
-    permissions:
-      contents: read
-      checks: write
-      pull-requests: write
-    # Only run if previous workflow was successful
-    if: needs.check-workflow-status.outputs.should-deploy == 'true'
-
-  pre-deploy-validation:
-    name: 'Pre-Deployment Validation'
-    runs-on: ubuntu-latest
-    # Wait for testing workflow to pass before proceeding
-    needs: [testing]
-    if: |
-      needs.testing.result == 'success' &&
-      (github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'))
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: 'npm'
-          cache-dependency-path: '**/package-lock.json'
-
-      - name: 📚 Install dependencies
-        run: npm ci --workspaces
-
-      - name: 📊 Run security audit
-        id: audit
-        continue-on-error: true
-        run: |
-          npm audit --json > audit-full.json 2>&1 || true
-
-          # Extract counts
-          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-full.json)
-          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-full.json)
-          echo "critical=${CRITICAL}" >> $GITHUB_OUTPUT
-          echo "high=${HIGH}" >> $GITHUB_OUTPUT
-
-          # Check baseline
-          if [ -f ".github/audit-baseline.json" ]; then
-            BASELINE=$(jq '.baseline // 7' .github/audit-baseline.json)
-            TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit-full.json)
-            if [ $TOTAL -gt $BASELINE ]; then
-              echo "baseline_exceeded=true" >> $GITHUB_OUTPUT
-            else
-              echo "baseline_exceeded=false" >> $GITHUB_OUTPUT
-            fi
-          fi
-
-      - name: ⛔ Fail if critical vulnerabilities found
-        if: steps.audit.outputs.critical > 0
-        run: |
-          echo "❌ Critical vulnerabilities found - deployment blocked"
-          exit 1
-
-      - name: ⛔ Fail if baseline exceeded
-        if: steps.audit.outputs.baseline_exceeded == 'true'
-        run: |
-          echo "❌ Vulnerabilities exceed baseline - deployment blocked"
-          exit 1
-
-      - name: ✅ Pre-deployment validation passed
-        run: echo "Pre-deployment validation completed successfully"
+  # NOTE: Testing and security audits moved to release.yml (executed before versioning)
+  # This eliminates duplicate validation work and reduces pipeline time by ~10 minutes
+  # See: WORKFLOW-DUPLICATE-ANALYSIS.md for details on this optimization
 
 
 
@@ -131,7 +62,8 @@ jobs:
   build-and-push-docker:
     name: 'Build & Push Docker Image'
     runs-on: ubuntu-latest
-    needs: [pre-deploy-validation]
+    needs: [check-workflow-status]
+    if: needs.check-workflow-status.outputs.should-deploy == 'true'
     permissions:
       contents: read
       packages: write
@@ -392,22 +324,21 @@ jobs:
     name: 'Deployment Summary'
     runs-on: ubuntu-latest
     if: always()
-    needs: [pre-deploy-validation, build-and-push-docker, deploy-staging, deploy-production]
+    needs: [build-and-push-docker, deploy-staging, deploy-production]
 
     steps:
       - name: 📋 Generate deployment summary
         uses: actions/github-script@v7
         with:
           script: |
-            const preDeploy = '${{ needs.pre-deploy-validation.result }}';
             const build = '${{ needs.build-and-push-docker.result }}';
             const staging = '${{ needs.deploy-staging.result }}';
             const production = '${{ needs.deploy-production.result }}';
 
             let summary = '## 🚀 Deployment Summary\n\n';
-            summary += `${preDeploy === 'success' ? '✅' : '❌'} Pre-Deployment Validation\n`;
             summary += `${build === 'success' ? '✅' : '❌'} Docker Build & Push\n`;
             summary += `${staging === 'success' ? '✅' : '⏭️'} Staging Deployment\n`;
             summary += `${production === 'success' ? '✅' : '⏭️'} Production Deployment\n`;
+            summary += '\n*Testing & audit validation performed in release.yml (before versioning)*\n';
 
             core.notice(summary);
