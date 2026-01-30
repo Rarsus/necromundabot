@@ -20,10 +20,9 @@ jobs:
       pull-requests: write
       checks: write
 
-  # Second: Vulnerability check
+  # Second: Vulnerability check (runs in parallel with run-tests)
   pre-release-check:
     name: Pre-Release Vulnerability Check
-    needs: [run-tests]
     uses: ./.github/workflows/reusable-audit-check.yml
     permissions:
       contents: read
@@ -193,10 +192,10 @@ jobs:
           echo "- Publishing order: utils → core → commands → dashboard" >> $GITHUB_STEP_SUMMARY
           echo "- Status: Publishing workflow triggered" >> $GITHUB_STEP_SUMMARY
 
-  # STEP 5: Build and tag Docker image with semantic version
+  # STEP 5: Build and tag Docker image with semantic version (runs in parallel with publish-artifacts)
   build-docker-image:
     name: 'Build & Tag Docker Image'
-    needs: [release, publish-artifacts]
+    needs: [release]
     runs-on: ubuntu-latest
     permissions:
       contents: read
