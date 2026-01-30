@@ -1,13 +1,15 @@
 name: Publish Packages to GitHub Packages
 
 on:
+  # Triggered after release workflow completes (creates versions)
+  workflow_dispatch:
+  # Also trigger on direct package.json changes for flexibility
   push:
     branches:
       - main
     paths:
       - 'repos/*/package.json'
       - '.github/workflows/publish-packages.yml'
-  workflow_dispatch:
 
 permissions:
   contents: read

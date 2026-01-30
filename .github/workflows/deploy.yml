@@ -1,8 +1,11 @@
 name: Deploy - Production Release
 
 on:
+  # Trigger after release workflow completes
   workflow_run:
-    workflows: ['Versioning - Semantic Release Management']
+    workflows:
+      - '🚀 Release & Tag'
+      - 'Publish Packages to GitHub Packages'
     types: [completed]
     branches: [main]
   workflow_dispatch:

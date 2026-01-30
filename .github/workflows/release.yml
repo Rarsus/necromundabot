@@ -161,3 +161,34 @@ jobs:
           echo "- Branches: main (stable) + develop (beta)" >> $GITHUB_STEP_SUMMARY
           echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
           echo "- Audit baseline: Pre-release check (via reusable-audit-check.yml)" >> $GITHUB_STEP_SUMMARY
+
+  # STEP 4: Build and publish artifacts
+  publish-artifacts:
+    name: Publish Artifacts (Docker & npm)
+    needs: [release]
+    runs-on: ubuntu-latest
+    if: needs.release.result == 'success'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: 🔔 Trigger publish-packages workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'publish-packages.yml',
+              ref: 'main'
+            });
+            console.log('✅ Triggered publish-packages workflow');
+
+      - name: 📋 Log artifact publishing
+        run: |
+          echo "## 📦 Artifact Publishing Initiated" >> $GITHUB_STEP_SUMMARY
+          echo "- Docker images: Will be built and pushed to GHCR" >> $GITHUB_STEP_SUMMARY
+          echo "- npm packages: Will be published to GitHub Packages" >> $GITHUB_STEP_SUMMARY
+          echo "- Publishing order: utils → core → commands → dashboard" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: Publishing workflow triggered" >> $GITHUB_STEP_SUMMARY
+
