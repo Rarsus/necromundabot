@@ -265,13 +265,6 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: 🔄 Initialize git submodules
-        run: |
-          git submodule update --init --recursive
-          echo "✅ Git submodules initialized"
 
       - name: 📦 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
