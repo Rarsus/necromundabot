@@ -81,26 +81,44 @@ jobs:
       - name: 🔍 Check if version already published
         id: check
         run: |
-          # Check if package version exists in registry
-          if npm view ${{ inputs.scope }}/${{ inputs.package-name }}@${{ steps.version.outputs.version }} 2>/dev/null; then
+          PACKAGE_FULL="${{ inputs.scope }}/${{ inputs.package-name }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          echo "Checking if $PACKAGE_FULL@$VERSION exists in registry..."
+          
+          # Try to fetch package info from registry
+          # npm view returns 0 if package exists, non-zero if not found
+          if npm view "$PACKAGE_FULL@$VERSION" --registry https://npm.pkg.github.com > /dev/null 2>&1; then
             echo "already-published=true" >> $GITHUB_OUTPUT
-            echo "ℹ️  Version already exists in registry"
+            echo "✅ Version already published (skipping)"
+            echo "   Package: $PACKAGE_FULL"
+            echo "   Version: $VERSION"
           else
             echo "already-published=false" >> $GITHUB_OUTPUT
             echo "✓ Version is new, ready to publish"
+            echo "   Package: $PACKAGE_FULL"
+            echo "   Version: $VERSION"
           fi
 
       - name: 📤 Publish to GitHub Packages
         id: publish
         if: steps.check.outputs.already-published == 'false'
         run: |
-          echo "Publishing ${{ inputs.scope }}/${{ inputs.package-name }}@${{ steps.version.outputs.version }}..."
+          PACKAGE_FULL="${{ inputs.scope }}/${{ inputs.package-name }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          echo "🚀 Publishing $PACKAGE_FULL@$VERSION..."
+          
           if npm publish --workspace=${{ inputs.workspace-path }}; then
-            echo "✅ Published successfully"
+            echo "✅ Published successfully!"
+            echo "   Package: $PACKAGE_FULL"
+            echo "   Version: $VERSION"
+            echo "   Registry: npm.pkg.github.com"
             echo "published=true" >> $GITHUB_OUTPUT
           else
-            echo "❌ Publish failed with exit code $?"
-            exit 1
+            EXIT_CODE=$?
+            echo "❌ Publish failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
           fi
 
       - name: ⏭️  Skip - Already published

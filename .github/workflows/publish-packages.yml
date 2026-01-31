@@ -232,17 +232,32 @@ jobs:
           npm config set @rarsus:registry https://npm.pkg.github.com
           npm config set //npm.pkg.github.com/:_authToken="$NODE_AUTH_TOKEN"
 
+      - name: 🔍 Run comprehensive version validation
+        id: validate
+        continue-on-error: true
+        run: |
+          echo "Running package version validation script..."
+          node scripts/validate-package-versions.js
+
       - name: 🔍 Verify published packages
         run: |
           echo "## 📦 Package Registry Verification" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Package Versions" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           
+          # Verify each package exists and get its version
           for pkg in necrobot-utils necrobot-core necrobot-commands necrobot-dashboard; do
-            if npm view @rarsus/$pkg >/dev/null 2>&1; then
-              VERSION=$(npm view @rarsus/$pkg version)
-              echo "✅ @rarsus/$pkg@$VERSION" >> $GITHUB_STEP_SUMMARY
+            LOCAL_VERSION=$(node -e "console.log(require('./repos/$pkg/package.json').version)" 2>/dev/null || echo "unknown")
+            
+            if REGISTRY_VERSION=$(npm view @rarsus/$pkg version 2>/dev/null); then
+              if [ "$LOCAL_VERSION" == "$REGISTRY_VERSION" ]; then
+                echo "✅ @rarsus/$pkg@$REGISTRY_VERSION (matches local)" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "⚠️  @rarsus/$pkg@$REGISTRY_VERSION (local: $LOCAL_VERSION - MISMATCH)" >> $GITHUB_STEP_SUMMARY
+              fi
             else
-              echo "⚠️ @rarsus/$pkg (not yet available)" >> $GITHUB_STEP_SUMMARY
+              echo "❌ @rarsus/$pkg (NOT in registry, local: $LOCAL_VERSION)" >> $GITHUB_STEP_SUMMARY
             fi
           done
 
@@ -264,14 +279,37 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 📊 Workflow Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Publishing Order" >> $GITHUB_STEP_SUMMARY
-          echo "1. ✅ necrobot-utils (foundation)" >> $GITHUB_STEP_SUMMARY
-          echo "2. ✅ necrobot-core (depends on utils)" >> $GITHUB_STEP_SUMMARY
-          echo "3. ✅ necrobot-commands (depends on core & utils)" >> $GITHUB_STEP_SUMMARY
-          echo "4. ✅ necrobot-dashboard (depends on utils)" >> $GITHUB_STEP_SUMMARY
+          echo "### Publishing Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Docker Builds (Parallel)" >> $GITHUB_STEP_SUMMARY
-          echo "- 🐳 Bot image: ${{ needs.build-bot-docker.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 🎨 Dashboard image: ${{ needs.build-dashboard-docker.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          
+          # Show which packages were published
+          if [ "${{ needs.publish-utils.outputs.published }}" == "true" ]; then
+            echo "- ✅ necrobot-utils v${{ needs.publish-utils.outputs.version }} (published)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️  necrobot-utils v${{ needs.publish-utils.outputs.version }} (already published)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.publish-core.outputs.published }}" == "true" ]; then
+            echo "- ✅ necrobot-core v${{ needs.publish-core.outputs.version }} (published)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️  necrobot-core v${{ needs.publish-core.outputs.version }} (already published)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.publish-commands.outputs.published }}" == "true" ]; then
+            echo "- ✅ necrobot-commands v${{ needs.publish-commands.outputs.version }} (published)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️  necrobot-commands v${{ needs.publish-commands.outputs.version }} (already published)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.publish-dashboard.outputs.published }}" == "true" ]; then
+            echo "- ✅ necrobot-dashboard v${{ needs.publish-dashboard.outputs.version }} (published)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️  necrobot-dashboard v${{ needs.publish-dashboard.outputs.version }} (already published)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ All artifacts published successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Builds" >> $GITHUB_STEP_SUMMARY
+          echo "- 🐳 Bot: ${{ needs.build-bot-docker.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🎨 Dashboard: ${{ needs.build-dashboard-docker.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Workflow completed successfully!" >> $GITHUB_STEP_SUMMARY
