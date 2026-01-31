@@ -8,14 +8,14 @@
 
 ## Executive Summary
 
-| Aspect | Finding | Evidence |
-|--------|---------|----------|
-| **Used in Docker builds?** | ❌ NO | Neither Dockerfile copies from root `/src` |
-| **Used in workspaces?** | ❌ NO | All workspaces have their own `/src` |
-| **Used in production?** | ❌ NO | Bot runs from `repos/necrobot-core/src/bot.js` |
-| **Used in tests?** | ❌ NO (mostly) | Tests reference workspace `/src`, not root |
-| **Used in package.json?** | ❌ NO | Main entry point set to unused path |
-| **Live code?** | ❌ NO | Appears to be old monorepo structure |
+| Aspect                     | Finding        | Evidence                                       |
+| -------------------------- | -------------- | ---------------------------------------------- |
+| **Used in Docker builds?** | ❌ NO          | Neither Dockerfile copies from root `/src`     |
+| **Used in workspaces?**    | ❌ NO          | All workspaces have their own `/src`           |
+| **Used in production?**    | ❌ NO          | Bot runs from `repos/necrobot-core/src/bot.js` |
+| **Used in tests?**         | ❌ NO (mostly) | Tests reference workspace `/src`, not root     |
+| **Used in package.json?**  | ❌ NO          | Main entry point set to unused path            |
+| **Live code?**             | ❌ NO          | Appears to be old monorepo structure           |
 
 **Recommendation**: 🗑️ **DELETE THIS FOLDER** - It's abandoned code from before the workspace migration.
 
@@ -84,11 +84,13 @@ const TOKEN = process.env.DISCORD_TOKEN;
 **Location**: `repos/necrobot-core/src/bot.js` ✅ **REAL**
 
 **Dockerfile Command**:
+
 ```dockerfile
 CMD ["node", "/app/repos/necrobot-core/src/bot.js"]
 ```
 
 **package.json Script**:
+
 ```json
 {
   "scripts": {
@@ -110,13 +112,13 @@ CMD ["node", "/app/repos/necrobot-core/src/bot.js"]
 
 All real code lives in workspace `/src` folders:
 
-| Workspace | Path | Purpose | Status |
-|-----------|------|---------|--------|
-| **necrobot-core** | `repos/necrobot-core/src/` | Bot runtime + core classes | ✅ ACTIVE |
-| **necrobot-commands** | `repos/necrobot-commands/src/` | Discord commands | ✅ ACTIVE |
-| **necrobot-utils** | `repos/necrobot-utils/src/` | Shared services & helpers | ✅ ACTIVE |
-| **necrobot-dashboard** | `repos/necrobot-dashboard/src/` | React frontend | ✅ ACTIVE |
-| **Root (UNUSED)** | `/src/` | ??? Old structure? | ❌ DEAD |
+| Workspace              | Path                            | Purpose                    | Status    |
+| ---------------------- | ------------------------------- | -------------------------- | --------- |
+| **necrobot-core**      | `repos/necrobot-core/src/`      | Bot runtime + core classes | ✅ ACTIVE |
+| **necrobot-commands**  | `repos/necrobot-commands/src/`  | Discord commands           | ✅ ACTIVE |
+| **necrobot-utils**     | `repos/necrobot-utils/src/`     | Shared services & helpers  | ✅ ACTIVE |
+| **necrobot-dashboard** | `repos/necrobot-dashboard/src/` | React frontend             | ✅ ACTIVE |
+| **Root (UNUSED)**      | `/src/`                         | ??? Old structure?         | ❌ DEAD   |
 
 ---
 
@@ -173,7 +175,7 @@ COPY --from=dependencies /app/node_modules ./node_modules
 ```json
 {
   "name": "necromundabot",
-  "main": "src/index.js",              ← Points to unused root /src
+  "private": true,
   "workspaces": [
     "repos/necrobot-utils",            ← Real code
     "repos/necrobot-core",
@@ -187,14 +189,17 @@ COPY --from=dependencies /app/node_modules ./node_modules
 }
 ```
 
-**Key Finding**: 
-- ✅ `main` field exists but points to unused code
+**Key Finding (Post-Cleanup)**:
+
+- ✅ Root package.json is a workspace orchestrator (`"private": true`)
+- ✅ No `"main"` field (removed - was pointing to deleted /src)
 - ✅ All production commands use `--workspace=` or `--workspaces`
-- ❌ The `"main": "src/index.js"` field is never actually used
+- ✅ Root is not a source package, doesn't need an entry point
 
 ### Workspace package.json Files (Real)
 
 **repos/necrobot-core/package.json**:
+
 ```json
 {
   "name": "necrobot-core",
@@ -207,6 +212,7 @@ COPY --from=dependencies /app/node_modules ./node_modules
 ```
 
 **repos/necrobot-commands/package.json**:
+
 ```json
 {
   "name": "necrobot-commands",
@@ -224,9 +230,9 @@ All references in the codebase point to **workspace** `/src`, not root:
 
 ```javascript
 // ✅ CORRECT - From workspace test files
-require('../../src/commands/misc/help.js')          // workspace necrobot-commands
-require('../../src/services/DatabaseService')       // workspace necrobot-utils
-require('../../src/core/CommandLoader')             // workspace necrobot-core
+require('../../src/commands/misc/help.js'); // workspace necrobot-commands
+require('../../src/services/DatabaseService'); // workspace necrobot-utils
+require('../../src/core/CommandLoader'); // workspace necrobot-core
 ```
 
 **File Count**: ~40+ references to `../../src/` in workspace test files ✅
@@ -260,6 +266,7 @@ CMD ["node", "/app/repos/necrobot-core/src/bot.js"]
 ## Part 6: Content Comparison
 
 ### Root `/src/` Structure
+
 ```
 /src/
 ├── bot.js (90 lines) ← DUPLICATE
@@ -271,6 +278,7 @@ CMD ["node", "/app/repos/necrobot-core/src/bot.js"]
 ### Workspace `/src/` Structure (Real)
 
 **repos/necrobot-core/src/**:
+
 ```
 ├── bot.js ← REAL, used in production
 ├── index.js ← REAL, exports core classes
@@ -284,6 +292,7 @@ CMD ["node", "/app/repos/necrobot-core/src/bot.js"]
 ```
 
 **repos/necrobot-commands/src/**:
+
 ```
 ├── index.js
 └── commands/
@@ -299,6 +308,7 @@ CMD ["node", "/app/repos/necrobot-core/src/bot.js"]
 ```
 
 **repos/necrobot-utils/src/**:
+
 ```
 ├── index.js
 ├── services/
@@ -323,6 +333,7 @@ CMD ["node", "/app/repos/necrobot-core/src/bot.js"]
 This folder structure suggests the project was migrated from a **monorepo structure** (all code in `/src`) to a **workspace structure** (separate packages in `repos/`).
 
 **Migration Timeline**:
+
 1. ✅ Old: All code in `/src/` at root
 2. ✅ Transition: Moved code to `repos/necrobot-*/src/`
 3. ❌ Incomplete: Failed to delete root `/src/` (left as dead code)
@@ -330,6 +341,7 @@ This folder structure suggests the project was migrated from a **monorepo struct
 ### Why It Wasn't Deleted
 
 Common reasons for dead code lingering:
+
 - Fear of breaking something
 - Copy of `main` field in package.json kept it "just in case"
 - Test files left during migration
@@ -348,6 +360,7 @@ const DatabaseService = require('../../src/services/DatabaseService');
 ```
 
 These paths assume structure like:
+
 ```
 /src/
 ├── core/CommandLoader.js
@@ -355,6 +368,7 @@ These paths assume structure like:
 ```
 
 **But the real files are at**:
+
 ```
 repos/necrobot-core/src/core/CommandLoader.js
 repos/necrobot-utils/src/services/DatabaseService.js
@@ -371,12 +385,14 @@ repos/necrobot-utils/src/services/DatabaseService.js
 **Risk Level**: 🟢 **VERY LOW**
 
 **What would break**:
+
 - ❌ Nothing (it's not used in production)
 - ❌ Nothing (not in Docker builds)
 - ❌ Nothing (not in workspaces)
 - ❌ Nothing (not referenced in code paths)
 
 **Verification**:
+
 - ✅ No Docker COPY statements reference it
 - ✅ No `require()` statements in runtime code reference it
 - ✅ No npm scripts run it
@@ -386,6 +402,7 @@ repos/necrobot-utils/src/services/DatabaseService.js
 ### If We Leave `/src/`
 
 **Risks**:
+
 - 👤 Developer confusion ("which /src am I supposed to edit?")
 - 🔒 False sense of security (might think code is being used)
 - 📦 Unnecessary container layer (if someone copies it)
@@ -429,11 +446,13 @@ repos/necrobot-utils/src/services/DatabaseService.js
 ### Option A: DELETE ✅ **RECOMMENDED**
 
 **Command**:
+
 ```bash
 rm -rf /src
 ```
 
 **Benefits**:
+
 - ✅ Removes ~1000+ lines of dead code
 - ✅ Eliminates developer confusion
 - ✅ Cleaner repository structure
@@ -443,6 +462,7 @@ rm -rf /src
 **Risk**: 🟢 **NONE** - Completely unused
 
 **Implementation**:
+
 ```bash
 # 1. Delete root /src folder
 git rm -r src/
@@ -489,7 +509,7 @@ This folder contains abandoned code from before the workspace migration.
 
 ## DO NOT EDIT THIS FOLDER
 
-This is a remnant of the monorepo-to-workspace migration. 
+This is a remnant of the monorepo-to-workspace migration.
 All development should happen in the workspace folders above.
 ```
 
@@ -497,13 +517,13 @@ All development should happen in the workspace folders above.
 
 ## Conclusion
 
-| Question | Answer | Confidence |
-|----------|--------|------------|
-| Is `/src` used? | ❌ NO | 99% |
-| Is it dead code? | ✅ YES | 99% |
-| Is it needed? | ❌ NO | 95% |
-| Should it be deleted? | ✅ YES | 95% |
-| Risk of deletion? | 🟢 ZERO | 99% |
+| Question              | Answer  | Confidence |
+| --------------------- | ------- | ---------- |
+| Is `/src` used?       | ❌ NO   | 99%        |
+| Is it dead code?      | ✅ YES  | 99%        |
+| Is it needed?         | ❌ NO   | 95%        |
+| Should it be deleted? | ✅ YES  | 95%        |
+| Risk of deletion?     | 🟢 ZERO | 99%        |
 
 **Verdict**: The root `/src` folder is **completely unused dead code** from before the workspace migration. It should be **deleted** to keep the repository clean and prevent developer confusion.
 
@@ -512,12 +532,14 @@ All development should happen in the workspace folders above.
 ## Implementation Plan
 
 ### Phase 1: Validation (This Session)
+
 - [x] Analyze Docker builds
 - [x] Check workspace configuration
 - [x] Verify no production code uses it
 - [x] Confirm all references are to workspace /src
 
 ### Phase 2: Cleanup (Ready to Execute)
+
 - [ ] Delete `/src` folder
 - [ ] Delete `/tests` folder (also abandoned)
 - [ ] Update `package.json` main field (optional)
@@ -525,6 +547,7 @@ All development should happen in the workspace folders above.
 - [ ] Push to origin/main
 
 ### Phase 3: Verification (After Cleanup)
+
 - [ ] Docker builds succeed
 - [ ] All tests pass
 - [ ] Bot starts successfully
