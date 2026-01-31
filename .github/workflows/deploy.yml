@@ -59,11 +59,11 @@ jobs:
 
 
 
-  # NOTE: Docker image now built in release.yml with semantic versioning
-  # This job validates that the pre-built image is accessible before deployment
+  # NOTE: Docker images now built in release.yml with semantic versioning
+  # This job validates that the pre-built images are accessible before deployment
   # See: WORKFLOW-DUPLICATE-ANALYSIS.md Option 2 for details
   validate-docker-image:
-    name: 'Validate Pre-built Docker Image'
+    name: 'Validate Pre-built Docker Images'
     runs-on: ubuntu-latest
     needs: [check-workflow-status]
     if: needs.check-workflow-status.outputs.should-deploy == 'true'
@@ -73,6 +73,7 @@ jobs:
 
     outputs:
       image: ${{ steps.get-version.outputs.image }}
+      image-dashboard: ${{ steps.get-version.outputs.image-dashboard }}
       version: ${{ steps.get-version.outputs.version }}
 
     steps:
@@ -84,9 +85,13 @@ jobs:
         run: |
           VERSION=$(jq -r '.version' package.json)
           IMAGE="ghcr.io/${{ github.repository }}:v${VERSION}"
+          IMAGE_DASHBOARD="ghcr.io/${{ github.repository }}-dashboard:v${VERSION}"
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "image=${IMAGE}" >> $GITHUB_OUTPUT
-          echo "✅ Using Docker image: ${IMAGE}"
+          echo "image-dashboard=${IMAGE_DASHBOARD}" >> $GITHUB_OUTPUT
+          echo "✅ Using Docker images:"
+          echo "   - Bot: ${IMAGE}"
+          echo "   - Dashboard: ${IMAGE_DASHBOARD}"
 
       - name: 🔐 Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -95,13 +100,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🔍 Validate image exists
+      - name: 🔍 Validate bot image exists
         run: |
           IMAGE="${{ steps.get-version.outputs.image }}"
-          echo "Checking if image exists: ${IMAGE}"
+          echo "Checking if bot image exists: ${IMAGE}"
           
           if docker pull "${IMAGE}" 2>&1 | grep -q "Downloaded newer image\|Status:"; then
-            echo "✅ Docker image validated and available"
+            echo "✅ Bot Docker image validated and available"
+          else
+            echo "⚠️ Note: Image may have been created in this release.yml run"
+          fi
+
+      - name: 🔍 Validate dashboard image exists
+        run: |
+          IMAGE="${{ steps.get-version.outputs.image-dashboard }}"
+          echo "Checking if dashboard image exists: ${IMAGE}"
+          
+          if docker pull "${IMAGE}" 2>&1 | grep -q "Downloaded newer image\|Status:"; then
+            echo "✅ Dashboard Docker image validated and available"
           else
             echo "⚠️ Note: Image may have been created in this release.yml run"
           fi
