@@ -189,7 +189,8 @@ jobs:
       - name: 🏗️ Build and push Dashboard Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./repos/necrobot-dashboard
+          context: .
+          file: Dockerfile.dashboard
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
