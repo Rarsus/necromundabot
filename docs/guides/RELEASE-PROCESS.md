@@ -1,10 +1,11 @@
 # Release Process & Versioning Guide
 
-This document describes the release process and versioning strategy for NecromundaBot and its submodules.
+This document describes the release process and versioning strategy for NecromundaBot and its npm workspace packages.
 
 ## Overview
 
 The NecromundaBot project uses:
+
 - **Semantic Versioning (SemVer)** for version numbering: `MAJOR.MINOR.PATCH`
 - **Conventional Commits** for commit messages that drive version bumps
 - **Automated Analysis** scripts to determine appropriate version bumps based on changes
@@ -14,12 +15,12 @@ The NecromundaBot project uses:
 
 Version format: `MAJOR.MINOR.PATCH`
 
-| Situation | Version Bump | Example |
-|-----------|-------------|---------|
-| **Breaking changes** | MAJOR | `1.0.0` → `2.0.0` |
-| **New features** (backward compatible) | MINOR | `1.0.0` → `1.1.0` |
-| **Bug fixes & refactors** | PATCH | `1.0.0` → `1.0.1` |
-| **Docs, chores, tests only** | No bump | Stay at current version |
+| Situation                              | Version Bump | Example                 |
+| -------------------------------------- | ------------ | ----------------------- |
+| **Breaking changes**                   | MAJOR        | `1.0.0` → `2.0.0`       |
+| **New features** (backward compatible) | MINOR        | `1.0.0` → `1.1.0`       |
+| **Bug fixes & refactors**              | PATCH        | `1.0.0` → `1.0.1`       |
+| **Docs, chores, tests only**           | No bump      | Stay at current version |
 
 ### Special Cases
 
@@ -61,6 +62,7 @@ git commit -m "chore: Description"
 ### Scope Examples
 
 Common scopes:
+
 - `core` - Core bot functionality
 - `utils` - Utility services and helpers
 - `commands` - Command-related changes
@@ -80,6 +82,7 @@ node ../../scripts/analyze-version-impact.js v0.2.1
 ```
 
 This shows:
+
 - Commit breakdown (feat, fix, breaking, refactor, etc.)
 - File changes (added, deleted, modified)
 - Recommended version bump with reasoning
@@ -87,6 +90,7 @@ This shows:
 ### Step 2: Determine Version
 
 Based on the analysis:
+
 - Check the **Recommended Version Bump** in the report
 - Verify it matches the expected impact of changes
 - If changes warrant a different bump, manual override is possible
@@ -106,6 +110,7 @@ cd repos/necrobot-core
 ```
 
 The script will:
+
 1. ✅ Show analysis report of changes
 2. ✅ Update `package.json` version
 3. ✅ Create release commit: `chore: release version X.Y.Z`
@@ -147,21 +152,21 @@ npm publish
 
 ## Repository Release Schedule
 
-| Repository | Package | Frequency | Notes |
-|-----------|---------|-----------|-------|
-| necrobot-core | `necrobot-core` | As needed | Core bot engine |
-| necrobot-utils | `necrobot-utils` | As needed | Shared utilities |
-| necrobot-commands | `necrobot-commands` | As needed | Discord commands (Phase 2.5) |
-| necrobot-dashboard | `necrobot-dashboard` | As needed | Web UI |
+| Repository         | Package              | Frequency | Notes                        |
+| ------------------ | -------------------- | --------- | ---------------------------- |
+| necrobot-core      | `necrobot-core`      | As needed | Core bot engine              |
+| necrobot-utils     | `necrobot-utils`     | As needed | Shared utilities             |
+| necrobot-commands  | `necrobot-commands`  | As needed | Discord commands (Phase 2.5) |
+| necrobot-dashboard | `necrobot-dashboard` | As needed | Web UI                       |
 
 ## Current Versions (as of Jan 27, 2026)
 
-| Repository | Latest Version | Latest Tag | Released |
-|-----------|-----------------|-----------|----------|
-| necrobot-core | 0.3.0 | v0.3.0 | Jan 27, 2026 |
-| necrobot-utils | 0.2.2 | v0.2.2 | Jan 27, 2026 |
-| necrobot-commands | 0.1.0 | v0.1.0 | — |
-| necrobot-dashboard | 0.1.3 | v0.1.3 | Jan 27, 2026 |
+| Repository         | Latest Version | Latest Tag | Released     |
+| ------------------ | -------------- | ---------- | ------------ |
+| necrobot-core      | 0.3.0          | v0.3.0     | Jan 27, 2026 |
+| necrobot-utils     | 0.2.2          | v0.2.2     | Jan 27, 2026 |
+| necrobot-commands  | 0.1.0          | v0.1.0     | —            |
+| necrobot-dashboard | 0.1.3          | v0.1.3     | Jan 27, 2026 |
 
 ## Rollback / Undo a Release
 
@@ -215,6 +220,7 @@ node scripts/analyze-version-impact.js            # Analyze since last tag
 ```
 
 Output includes:
+
 - Current version and comparison range
 - Commit breakdown by type
 - File changes by category (src, tests, docs, other)
@@ -271,11 +277,13 @@ git commit -m "Phase 25.0: Implement stuff"  # ← Triggers 'other' category
 **Purpose**: Analyzes commits since last tag and determines SemVer impact
 
 **Usage**:
+
 ```bash
 node scripts/analyze-version-impact.js [lastTag]
 ```
 
 **Output**:
+
 - Formatted report with commit breakdown
 - File change statistics
 - Recommended version bump
@@ -288,11 +296,13 @@ node scripts/analyze-version-impact.js [lastTag]
 **Purpose**: Creates a release with proper versioning, commit, and tag
 
 **Usage**:
+
 ```bash
 ./scripts/create-release.sh [version]
 ```
 
 **Steps**:
+
 1. Shows analysis report (if version not specified)
 2. Updates `package.json` version
 3. Creates release commit
@@ -304,23 +314,27 @@ node scripts/analyze-version-impact.js [lastTag]
 ### "Version X.Y.Z already released"
 
 The tag `vX.Y.Z` already exists. Either:
+
 - Use a different version number
 - Delete the tag if it was created by mistake: `git tag -d vX.Y.Z`
 
 ### "Recommended Version Bump: none"
 
 Only docs/chore/test changes were made. Choose:
+
 - Don't release (no new functionality)
 - Create PATCH release if you prefer to mark the release
 
 ### Wrong version bump recommended
 
 Check:
+
 1. Are commit messages following conventional format?
 2. Were new source files added/deleted?
 3. Were breaking changes introduced?
 
 If analysis is wrong, you can manually override:
+
 ```bash
 ./scripts/create-release.sh 0.4.0  # Specify version directly
 ```
@@ -356,6 +370,7 @@ Use: `./scripts/create-release.sh 1.0.0-beta.1`
 ## Questions?
 
 Refer to:
+
 - [Semantic Versioning Spec](https://semver.org/)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [NPM Publishing Guide](https://docs.npmjs.com/packages-and-modules)

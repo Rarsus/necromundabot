@@ -96,14 +96,16 @@ The bot uses Docker volumes to ensure the SQLite database survives container reb
 
 ```yaml
 volumes:
-  - necromundabot_data:/app/data  # Database location
+  - necromundabot_data:/app/data # Database location
 ```
 
 Database file location:
+
 - **Inside container:** `/app/data/necromundabot.db`
 - **On host machine:** `./data/necromundabot.db` (relative to docker-compose.yml)
 
 The database persists across:
+
 - Container restarts (`docker restart`)
 - Container rebuilds (`docker-compose up --build`)
 - Image updates
@@ -111,6 +113,7 @@ The database persists across:
 ### Signal Handling
 
 The Dockerfile uses `dumb-init` to properly handle signals:
+
 - SIGTERM for graceful shutdown
 - SIGINT (Ctrl+C) for immediate termination
 - Prevents zombie processes
@@ -124,6 +127,7 @@ docker ps --format "table {{.Names}}\t{{.Status}}"
 ```
 
 Output example:
+
 ```
 NAMES            STATUS
 necromundabot    Up 5 minutes (healthy)
@@ -134,9 +138,9 @@ necromundabot    Up 5 minutes (healthy)
 Docker compose limits resources to prevent excessive usage:
 
 ```yaml
-cpus: '1'              # Maximum 1 CPU core
-memory: 512M           # Maximum 512MB RAM
-reservations:          # Recommended baseline
+cpus: '1' # Maximum 1 CPU core
+memory: 512M # Maximum 512MB RAM
+reservations: # Recommended baseline
   cpus: '0.5'
   memory: 256M
 ```
@@ -144,11 +148,13 @@ reservations:          # Recommended baseline
 ### Logging
 
 Logs are automatically managed:
+
 - Format: JSON
 - Max file size: 10MB
 - Maximum files: 3 (30MB total)
 
 View logs:
+
 ```bash
 docker-compose logs -f necromundabot    # Follow logs
 docker logs necromundabot               # View all logs
@@ -159,15 +165,15 @@ docker-compose logs --tail 100          # Last 100 lines
 
 All environment variables are configured in `.env` file:
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DISCORD_TOKEN` | ✅ | Bot token from Discord Developer Portal |
-| `CLIENT_ID` | ✅ | Application ID from Discord Developer Portal |
-| `GUILD_ID` | ❌ | Guild ID for faster command registration |
-| `PREFIX` | ❌ | Legacy prefix command prefix (default: !) |
-| `DATABASE_PATH` | ❌ | Database file location (set by docker-compose) |
-| `NODE_ENV` | ❌ | Environment: production/development (default: production) |
-| `HUGGINGFACE_API_KEY` | ❌ | API key for AI poem generation |
+| Variable              | Required | Description                                               |
+| --------------------- | -------- | --------------------------------------------------------- |
+| `DISCORD_TOKEN`       | ✅       | Bot token from Discord Developer Portal                   |
+| `CLIENT_ID`           | ✅       | Application ID from Discord Developer Portal              |
+| `GUILD_ID`            | ❌       | Guild ID for faster command registration                  |
+| `PREFIX`              | ❌       | Legacy prefix command prefix (default: !)                 |
+| `DATABASE_PATH`       | ❌       | Database file location (set by docker-compose)            |
+| `NODE_ENV`            | ❌       | Environment: production/development (default: production) |
+| `HUGGINGFACE_API_KEY` | ❌       | API key for AI poem generation                            |
 
 ## Troubleshooting
 
@@ -204,8 +210,8 @@ Adjust limits in `docker-compose.yml`:
 deploy:
   resources:
     limits:
-      cpus: '2'           # Increase to 2 cores
-      memory: 1024M       # Increase to 1GB
+      cpus: '2' # Increase to 2 cores
+      memory: 1024M # Increase to 1GB
 ```
 
 ### Permission Denied Errors
@@ -244,7 +250,7 @@ services:
     networks:
       - backend
     ports:
-      - "3000:3000"  # For future dashboard
+      - '3000:3000' # For future dashboard
 
 networks:
   backend:
@@ -262,7 +268,7 @@ services:
       POSTGRES_PASSWORD: secret
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    
+
   necromundabot:
     depends_on:
       - postgres
@@ -347,6 +353,158 @@ docker run -d -v necromundabot_data:/app/data ... necromundabot:v0.0.1
 docker run ... old-image-id
 ```
 
+## Dual-Container Architecture (Phase 03.3 - Production Strategy)
+
+NecromundaBot now uses a **dual-container strategy** for improved performance, resource isolation, and independent scaling:
+
+```
+┌──────────────────────────────────────────┐
+│    Docker Compose (Production Setup)     │
+├──────────────────────────────────────────┤
+│                                          │
+│  ┌─────────────────────┐  ┌───────────┐ │
+│  │   Bot Container     │  │Dashboard  │ │
+│  │ - discord.js client │  │ - React   │ │
+│  │ - commands          │  │ - Web UI  │ │
+│  │ - ~150MB            │  │ - ~127MB  │ │
+│  │ - Port: 3000        │  │ - Port 3001  │
+│  └─────────────────────┘  └───────────┘ │
+│           │                      │       │
+│           └──────────┬───────────┘       │
+│                      │                   │
+│         ┌────────────────────────┐       │
+│         │  Shared SQLite DB      │       │
+│         │  (volumes/)            │       │
+│         └────────────────────────┘       │
+│                                          │
+└──────────────────────────────────────────┘
+```
+
+### Key Benefits
+
+- **70% Smaller**: 942MB → 277MB combined (from previous monolithic approach)
+- **40-50% Faster**: Parallel container execution and startup
+- **Independent Updates**: Update bot or dashboard without affecting the other
+- **Better Resource Control**: Dedicated CPU/memory limits per container
+- **Improved Reliability**: Dashboard crash doesn't stop bot's Discord connection
+- **Horizontal Scaling**: Bot container can be scaled behind load balancer if needed
+
+### Container Images
+
+| Container     | Image                                           | Size   | Port | Memory | Purpose                             |
+| ------------- | ----------------------------------------------- | ------ | ---- | ------ | ----------------------------------- |
+| **Bot**       | `ghcr.io/Rarsus/necromundabot:v1.5.0`           | ~150MB | 3000 | 512MB  | Discord bot, commands, database ops |
+| **Dashboard** | `ghcr.io/Rarsus/necromundabot-dashboard:v1.5.0` | ~127MB | 3001 | 256MB  | React web UI, management, analytics |
+
+### docker-compose Configuration
+
+```yaml
+version: '3.9'
+
+services:
+  necromundabot:
+    image: ghcr.io/Rarsus/necromundabot:v1.5.0
+    container_name: necromundabot
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - DATABASE_PATH=/app/data/necromunda.db
+      - NODE_ENV=production
+    volumes:
+      - necromundabot_data:/app/data
+    networks:
+      - necronet
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://localhost:3000')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  dashboard:
+    image: ghcr.io/Rarsus/necromundabot-dashboard:v1.5.0
+    container_name: necromundabot-dashboard
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    environment:
+      - API_URL=http://necromundabot:3000
+      - DATABASE_PATH=/app/data/necromunda.db
+      - NODE_ENV=production
+    volumes:
+      - necromundabot_data:/app/data:ro
+    networks:
+      - necronet
+    depends_on:
+      - necromundabot
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+volumes:
+  necromundabot_data:
+    driver: local
+
+networks:
+  necronet:
+    driver: bridge
+```
+
+### Running Dual Containers
+
+```bash
+# Build both images
+docker-compose build
+
+# Start both containers
+docker-compose up -d
+
+# Check status
+docker-compose ps
+
+# View logs (all containers)
+docker-compose logs -f
+
+# View specific container logs
+docker-compose logs -f necromundabot
+docker-compose logs -f dashboard
+
+# Update only bot
+docker-compose up -d --build necromundabot
+
+# Update only dashboard
+docker-compose up -d --build dashboard
+
+# Stop both
+docker-compose down
+```
+
+### Local Development (No Docker)
+
+For local development, run both services on your machine:
+
+```bash
+# Terminal 1: Bot service
+cd repos/necrobot-core
+npm install
+npm start
+
+# Terminal 2: Dashboard service
+cd repos/necrobot-dashboard
+npm install
+npm start
+
+# Both services share the local database
+```
+
 ## Security Best Practices
 
 1. **Never commit .env file** - Uses .gitignore
@@ -366,16 +524,16 @@ docker run ... old-image-id
 ## FAQ
 
 **Q: How do I update the bot?**
-A: Git pull new code, run `docker-compose up --build`, database persists automatically.
+A: Git pull new code, run `docker-compose up -d --build necromundabot` for bot or `docker-compose up -d --build dashboard` for dashboard. Database persists automatically. Both services can be updated independently.
 
 **Q: Will my database be deleted if I stop the container?**
-A: No, the database volume persists. It's only deleted with `docker-compose down -v`.
+A: No, the database volume persists across container restarts. It's only deleted with `docker-compose down -v`.
 
 **Q: Can I run multiple instances?**
-A: Yes, use `docker-compose -p instance2 up -d` with different project names.
+A: Yes, use `docker-compose -p instance2 up -d` with different project names. Both bot and dashboard containers will be isolated.
 
 **Q: How do I connect to the container shell?**
-A: `docker-compose exec necromundabot sh`
+A: `docker-compose exec necromundabot sh` (bot) or `docker-compose exec dashboard sh` (dashboard)
 
 **Q: What if the port is already in use?**
 A: The bot doesn't expose any ports by default. If needed, modify docker-compose.yml.

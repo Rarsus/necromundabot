@@ -2,7 +2,7 @@
 
 ## Overview
 
-NecromundaBot is a modular Discord bot built with a **submodule-based architecture** using Git submodules and NPM workspaces. The system is organized into independent, focused modules with clear responsibilities and dependency boundaries.
+NecromundaBot is a modular Discord bot built with an **npm workspaces-based monorepo architecture**. The system is organized into independent, focused packages with clear responsibilities and dependency boundaries.
 
 ## Architecture Diagram
 
@@ -38,17 +38,20 @@ NecromundaBot is a modular Discord bot built with a **submodule-based architectu
 ## Core Principles
 
 ### 1. Modularity
+
 - Each module has a single, well-defined responsibility
 - Modules are independently versioned and released
 - Modules communicate through clear interfaces
 
 ### 2. Separation of Concerns
+
 - **Bot Engine** (necrobot-core): Discord.js integration, event handling
 - **Services** (necrobot-utils): Business logic, database operations
 - **Presentation** (necrobot-dashboard): Web UI
 - **Commands** (necrobot-commands): Discord command implementations
 
 ### 3. Dependency Flow
+
 ```
 necrobot-dashboard ──┐
                      ├─→ necrobot-utils
@@ -60,7 +63,9 @@ necrobot-core ───────┘
 **Rule:** Lower layers should NOT depend on higher layers.
 
 ### 4. Guild-Aware Architecture
+
 All data operations enforce **mandatory guild context** to enable:
+
 - Multi-guild isolation
 - Per-guild configuration
 - Scalable architecture
@@ -72,6 +77,7 @@ All data operations enforce **mandatory guild context** to enable:
 **Purpose:** Discord bot engine and core infrastructure
 
 **Responsibilities:**
+
 - Discord.js client initialization
 - Event handler registration and execution
 - Middleware pipeline (logging, error handling)
@@ -79,16 +85,19 @@ All data operations enforce **mandatory guild context** to enable:
 - Interaction routing (slash commands, message commands)
 
 **Key Files:**
+
 - `src/index.js` - Bot entry point
 - `src/core/EventBase.js` - Event handler base class
 - `src/middleware/` - Cross-cutting concerns
 - `src/events/` - Event handlers
 
 **Dependencies:**
+
 - Discord.js 14.11.0
 - necrobot-utils (services layer)
 
 **Exports:**
+
 - Bot client instance
 - Event management system
 - Middleware pipeline
@@ -98,6 +107,7 @@ All data operations enforce **mandatory guild context** to enable:
 **Purpose:** Shared services and utilities layer
 
 **Responsibilities:**
+
 - Database operations (SQLite)
 - Business logic (quotes, reminders, validations)
 - Discord message formatting (embeds, responses)
@@ -105,15 +115,18 @@ All data operations enforce **mandatory guild context** to enable:
 - Guild-aware service layer
 
 **Key Files:**
+
 - `src/services/` - Service implementations
 - `src/middleware/` - Error handling, logging
 - `src/utils/helpers/` - Formatting and utilities
 - `src/constants/` - Constants and configurations
 
 **Dependencies:**
+
 - None (no dependencies on other modules)
 
 **Exports:**
+
 - Database services
 - Validation services
 - Response helpers
@@ -124,6 +137,7 @@ All data operations enforce **mandatory guild context** to enable:
 **Purpose:** Centralized command management
 
 **Responsibilities:**
+
 - Discord command implementations
 - Command registration (slash + prefix)
 - Command category organization
@@ -131,16 +145,19 @@ All data operations enforce **mandatory guild context** to enable:
 - Command-specific error handling
 
 **Key Files:**
+
 - `src/core/CommandBase.js` - Command base class
 - `src/core/CommandOptions.js` - Options builder
 - `src/commands/` - Command implementations
 - `src/register-commands.js` - Registration script
 
 **Dependencies:**
+
 - necrobot-core (for Discord.js integration)
 - necrobot-utils (for services and helpers)
 
 **Exports:**
+
 - Command implementations
 - Command registration function
 
@@ -149,21 +166,25 @@ All data operations enforce **mandatory guild context** to enable:
 **Purpose:** Web-based management interface
 
 **Responsibilities:**
+
 - Guild settings and configuration
 - Data visualization and reporting
 - Server management interface
 - Real-time status updates
 
 **Key Files:**
+
 - `src/pages/` - Next.js pages
 - `src/components/` - React components
 - `src/hooks/` - Custom React hooks
 - `src/utils/` - API clients and helpers
 
 **Dependencies:**
+
 - necrobot-utils (for data access)
 
 **Exports:**
+
 - Next.js application
 
 ## Data Flow Patterns
@@ -215,16 +236,19 @@ ServiceLayer (QuoteService, ValidationService, etc.)
 ## Layer Architecture
 
 ### Presentation Layer
+
 - **Discord Commands** (necrobot-commands)
 - **Dashboard UI** (necrobot-dashboard)
 - Responsible for: User interaction, command parsing, UI rendering
 
 ### Application Layer
+
 - **Command Handlers** (necrobot-commands)
 - **Event Handlers** (necrobot-core)
 - Responsible for: Business logic orchestration, error handling
 
 ### Service Layer
+
 - **Services** (necrobot-utils)
   - Database operations
   - Validation logic
@@ -232,6 +256,7 @@ ServiceLayer (QuoteService, ValidationService, etc.)
 - Responsible for: Core business logic, data access
 
 ### Infrastructure Layer
+
 - **Middleware** (necrobot-core, necrobot-utils)
 - **Database** (SQLite)
 - **Discord.js Integration** (necrobot-core)
@@ -240,6 +265,7 @@ ServiceLayer (QuoteService, ValidationService, etc.)
 ## Communication Patterns
 
 ### Intra-Module (within necrobot-core)
+
 ```javascript
 // Direct imports and function calls
 const EventHandler = require('../events/EventHandler');
@@ -247,6 +273,7 @@ const handler = new EventHandler();
 ```
 
 ### Inter-Module (between submodules)
+
 ```javascript
 // Workspace dependency resolution
 const DatabaseService = require('../../necrobot-utils/src/services/DatabaseService');
@@ -254,6 +281,7 @@ const { sendSuccess } = require('../../necrobot-utils/src/utils/helpers/response
 ```
 
 ### NPM Workspace Resolution
+
 ```json
 {
   "dependencies": {
@@ -261,6 +289,7 @@ const { sendSuccess } = require('../../necrobot-utils/src/utils/helpers/response
   }
 }
 ```
+
 - Resolves to local module during development
 - Resolves to published version when consumed as package
 
@@ -295,6 +324,7 @@ necrobot-dashboard
 ```
 
 **Important:** Version `"*"` in workspace dependencies ensures:
+
 - Automatic resolution to local workspace version during development
 - Proper version pinning when published to npm
 - Version independence between modules
@@ -302,6 +332,7 @@ necrobot-dashboard
 ## Guild-Aware Architecture
 
 All data operations are guild-scoped to support:
+
 - Multi-guild deployments
 - Guild-specific configurations
 - Data isolation
@@ -400,6 +431,7 @@ necrobot-utils/tests/
 ## Deployment Architecture
 
 ### Development Environment
+
 ```
 Local Machine
   ├─ Node.js 22+
@@ -409,6 +441,7 @@ Local Machine
 ```
 
 ### Production Environment
+
 ```
 Server/Container
   ├─ Node.js 22+ runtime
@@ -418,19 +451,47 @@ Server/Container
   └─ Discord bot token (secrets management)
 ```
 
-### Docker Architecture
+### Docker Architecture (Phase 03.3 - Dual Containers)
+
+**Production Strategy:** Separate containers for bot and dashboard (70% smaller, 40-50% faster deployment)
+
 ```
-Dockerfile
-  ├─ Base: Node.js 22
-  ├─ Install dependencies
-  ├─ Copy application code
-  ├─ Expose port (for dashboard)
-  └─ Run bot
+Docker Compose (Production)
+  ├─ Container 1: Bot (necromundabot)
+  │   ├─ Base: Node.js 22 Alpine
+  │   ├─ Size: ~150MB (compressed)
+  │   ├─ Ports: 3000 (internal)
+  │   ├─ Memory: 512MB recommended
+  │   ├─ Service: discord.js client, commands, database
+  │   └─ Depends on: necrobot-core, necrobot-utils
+  │
+  ├─ Container 2: Dashboard (necromundabot-dashboard)
+  │   ├─ Base: Node.js 22 Alpine
+  │   ├─ Size: ~127MB (compressed)
+  │   ├─ Ports: 3001 (exposed for web)
+  │   ├─ Memory: 256MB recommended
+  │   ├─ Service: React UI, management, analytics
+  │   └─ Depends on: necrobot-utils
+  │
+  └─ Shared Resources
+      ├─ Database volume (SQLite)
+      ├─ Docker network (internal communication)
+      └─ Orchestration: docker-compose
 ```
+
+**Benefits:**
+
+- **70% Size Reduction**: 942MB → 277MB combined
+- **40-50% Faster Builds**: Parallel container execution
+- **Independent Scaling**: Each container scaled independently
+- **Resource Isolation**: Dedicated limits per container
+- **Failure Isolation**: Dashboard crash doesn't affect bot Discord connection
+- **Separate Deployments**: Update bot or dashboard independently
 
 ## Version Management
 
 ### Independent Versioning
+
 Each module is independently versioned using Semantic Versioning:
 
 ```
@@ -441,37 +502,64 @@ necrobot-commands: 0.1.0
 ```
 
 ### Version Compatibility
+
 - Workspace `"*"` dependencies ensure compatibility during development
 - Published packages track actual semantic versions
 - Breaking changes trigger MAJOR version bumps
 
 ## Key Design Decisions
 
-### 1. Why Git Submodules?
-- Independent version control
-- Clear module boundaries
-- Allows external consumers to depend on submodules
-- Enables parallel development
+### 1. Why npm Workspaces (Not Git Submodules)?
 
-### 2. Why NPM Workspaces?
+Previously, the project used git submodules. In Phase 03.3, we migrated to npm workspaces because:
+
+- ✅ **Simpler Setup** - Single `git clone` gets everything (no `git submodule update`)
+- ✅ **Better Publishing** - All packages publish from single source
+- ✅ **Unified CI/CD** - One workflow manages all packages
+- ✅ **Linked Dependencies** - `npm install --workspaces` handles all linking
+- ✅ **Single Git History** - Easier debugging with unified commit history
+- ❌ **Trade-off:** No separate version control per workspace (intentional choice)
+
+### 2. Why Dual-Container Docker Strategy?
+
+The monolithic single-container approach had limitations:
+
+- **Large Image Size** - 942MB compressed
+- **Slow Builds** - Sequential compilation of all services
+- **Coupled Deployments** - Can't update bot without dashboard
+- **Resource Waste** - Unused React bundles in bot runtime
+
+Dual-container strategy solves these:
+
+- **70% Smaller** - 277MB total (150MB bot + 127MB dashboard)
+- **Parallel Execution** - Build & run independently
+- **Independent Updates** - Update services separately
+- **Better Resource Control** - Dedicated limits per container
+- **Failure Isolation** - Dashboard crash doesn't stop bot
+
+### 3. Why npm Workspaces in Addition to Docker?
+
 - Unified dependency management
 - Local development without npm install
 - Simulates production npm resolution
 - Simplifies CI/CD
 
 ### 3. Why Guild-Aware Architecture?
+
 - Prevents cross-guild data leaks
 - Supports multi-guild deployments
 - Enables per-guild customization
 - Scales to thousands of guilds
 
 ### 4. Why Service Layer?
+
 - Business logic separation from Discord handling
 - Testability (can test without Discord.js mocks)
 - Reusability across commands
 - Easier to understand and maintain
 
 ### 5. Why CommandBase Class?
+
 - Consistent error handling across all commands
 - Automatic logging and metrics
 - Unified option handling
@@ -480,24 +568,28 @@ necrobot-commands: 0.1.0
 ## Extension Points
 
 ### Adding New Commands
+
 1. Create in `necrobot-commands/src/commands/{category}/{command-name}.js`
 2. Extend `CommandBase`
 3. Implement `execute()` and `executeInteraction()`
 4. Use shared services from `necrobot-utils`
 
 ### Adding New Services
+
 1. Create in `necrobot-utils/src/services/{ServiceName}.js`
 2. Export from `src/index.js`
 3. Test in `tests/unit/test-{service-name}.test.js`
 4. Use from commands and other services
 
 ### Adding New Events
+
 1. Create in `necrobot-core/src/events/{event-name}.js`
 2. Extend `EventBase`
 3. Register in bot initialization
 4. Use shared services from `necrobot-utils`
 
 ### Adding Dashboard Features
+
 1. Create React component in `necrobot-dashboard/src/components/`
 2. Create Next.js page in `necrobot-dashboard/src/pages/`
 3. Use API client from `necrobot-utils` services
@@ -506,11 +598,13 @@ necrobot-commands: 0.1.0
 ## Scalability Considerations
 
 ### Current Limitations
+
 - Single SQLite database (suitable for ~10,000 guilds)
 - All data in-memory (consider caching for large deployments)
 - No clustering support (single bot instance)
 
 ### Future Scaling Options
+
 - PostgreSQL for distributed deployments
 - Redis caching layer
 - Multiple bot instances with message queue
@@ -519,17 +613,20 @@ necrobot-commands: 0.1.0
 ## Security Architecture
 
 ### Data Protection
+
 - Guild context isolation (prevent cross-guild access)
 - Database query parameterization (SQL injection prevention)
 - Input validation at service layer
 - Error messages don't leak sensitive information
 
 ### Permission Checking
+
 - Discord permission validation before command execution
 - Role-based access control for sensitive operations
 - Admin-only command separation
 
 ### Secrets Management
+
 - `.env` file (never committed)
 - Environment variables for sensitive data
 - Discord bot token protection

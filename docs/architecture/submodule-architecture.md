@@ -1,18 +1,35 @@
-# NecromundaBot Submodule Architecture
+# NecromundaBot Workspace Architecture
 
 ## Overview
 
-NecromundaBot uses a **Git submodule-based architecture** where each major component is maintained as an independent Git repository within the main monorepo. This document details the structure, responsibilities, and design of each submodule.
+NecromundaBot uses an **npm workspaces-based monorepo architecture** where each major component is maintained as an independent npm package within the main repository. Each workspace has its own `package.json`, tests, and source code. This document details the structure, responsibilities, and design of each workspace.
 
-## Submodule Structure
+**Note:** While workspaces are organized in a `repos/` folder structure, this is NOT git submodules. All code is in a single git repository with a unified git history.
+
+## Workspace Structure
 
 ```
-NecromundaBot (Main Repo)
-├── repos/necrobot-core/           # Bot engine & events
-├── repos/necrobot-utils/          # Services & utilities
-├── repos/necrobot-commands/       # Discord commands (Phase 2.5)
-└── repos/necrobot-dashboard/      # Web UI & dashboard
+NecromundaBot Monorepo (Single Git Repository)
+├── repos/necrobot-core/           # Bot engine & events (npm workspace)
+├── repos/necrobot-utils/          # Services & utilities (npm workspace)
+├── repos/necrobot-commands/       # Discord commands (npm workspace)
+└── repos/necrobot-dashboard/      # Web UI & dashboard (npm workspace)
+
+Each workspace:
+├── package.json                   # Independent dependency declarations
+├── src/                           # Workspace source code
+├── tests/                         # Workspace tests
+├── README.md                      # Workspace-specific documentation
+└── .git/ (absent - shared git history with main repo)
 ```
+
+**Key Difference from Git Submodules:**
+
+- ✅ Single git history (all commits in one repository)
+- ✅ npm install in root installs all workspace dependencies
+- ✅ Can run `npm test --workspace=repos/necrobot-core` for specific workspace
+- ✅ Each workspace versioned independently (can release v0.3.0 and v0.2.2 in same monorepo)
+- ❌ NOT separate git repositories - no `.git/` in each workspace
 
 ## 1. necrobot-core
 
@@ -77,22 +94,32 @@ necrobot-core/
 ### Key Files
 
 **`src/index.js`** - Bot entry point
+
 ```javascript
 const { Client } = require('discord.js');
 const DatabaseService = require('../../necrobot-utils/src/services/DatabaseService');
 
 // Initialize bot
-const client = new Client({ intents: [/* ... */] });
+const client = new Client({
+  intents: [
+    /* ... */
+  ],
+});
 
 // Load events
-client.on('ready', async () => { /* ... */ });
-client.on('interactionCreate', async (interaction) => { /* ... */ });
+client.on('ready', async () => {
+  /* ... */
+});
+client.on('interactionCreate', async (interaction) => {
+  /* ... */
+});
 
 // Connect to Discord
 client.login(process.env.DISCORD_TOKEN);
 ```
 
 **`src/core/EventBase.js`** - Event handler base class
+
 ```javascript
 class EventBase {
   constructor(eventName) {
@@ -108,11 +135,12 @@ module.exports = EventBase;
 ```
 
 **`src/middleware/errorHandler.js`** - Error handling pipeline
+
 ```javascript
 async function handleError(error, context) {
   // Log error
   logger.error(error, context);
-  
+
   // Send user-friendly message
   if (context.interaction) {
     await sendError(context.interaction, 'An error occurred');
@@ -231,6 +259,7 @@ necrobot-utils/
 ### Key Files
 
 **`src/services/DatabaseService.js`** - Core database layer
+
 ```javascript
 class DatabaseService {
   constructor(filepath) {
@@ -260,6 +289,7 @@ module.exports = DatabaseService;
 ```
 
 **`src/services/GuildAwareDatabaseService.js`** - Guild context enforcement
+
 ```javascript
 class GuildAwareDatabaseService {
   constructor(db) {
@@ -269,11 +299,8 @@ class GuildAwareDatabaseService {
   async getQuotesForGuild(guildId) {
     // Enforce guild context - MANDATORY
     if (!guildId) throw new Error('Guild ID is required');
-    
-    return this.db.getMany(
-      'SELECT * FROM quotes WHERE guild_id = ?',
-      [guildId]
-    );
+
+    return this.db.getMany('SELECT * FROM quotes WHERE guild_id = ?', [guildId]);
   }
 }
 
@@ -281,6 +308,7 @@ module.exports = GuildAwareDatabaseService;
 ```
 
 **`src/services/QuoteService.js`** - Business logic for quotes
+
 ```javascript
 class QuoteService {
   constructor(db) {
@@ -294,18 +322,16 @@ class QuoteService {
     }
 
     // Insert with guild context
-    return this.db.executeQuery(
-      'INSERT INTO quotes (guild_id, content, author) VALUES (?, ?, ?)',
-      [guildId, content, author]
-    );
+    return this.db.executeQuery('INSERT INTO quotes (guild_id, content, author) VALUES (?, ?, ?)', [
+      guildId,
+      content,
+      author,
+    ]);
   }
 
   async getRandomQuote(guildId) {
     // Retrieve random quote for guild
-    return this.db.getOne(
-      'SELECT * FROM quotes WHERE guild_id = ? ORDER BY RANDOM() LIMIT 1',
-      [guildId]
-    );
+    return this.db.getOne('SELECT * FROM quotes WHERE guild_id = ? ORDER BY RANDOM() LIMIT 1', [guildId]);
   }
 }
 
@@ -313,6 +339,7 @@ module.exports = QuoteService;
 ```
 
 **`src/utils/helpers/response-helpers.js`** - Discord message formatting
+
 ```javascript
 async function sendQuoteEmbed(interaction, quote, title = 'Quote') {
   const embed = new EmbedBuilder()
@@ -327,21 +354,21 @@ async function sendQuoteEmbed(interaction, quote, title = 'Quote') {
 async function sendSuccess(interaction, message) {
   return interaction.reply({
     content: `✅ ${message}`,
-    ephemeral: true
+    ephemeral: true,
   });
 }
 
 async function sendError(interaction, message, ephemeral = true) {
   return interaction.reply({
     content: `❌ ${message}`,
-    ephemeral
+    ephemeral,
   });
 }
 
 module.exports = {
   sendQuoteEmbed,
   sendSuccess,
-  sendError
+  sendError,
 };
 ```
 
@@ -368,18 +395,18 @@ module.exports = {
   ValidationService,
   GuildAwareDatabaseService,
   GuildAwareReminderService,
-  
+
   // Helpers
   responseHelpers: {
     sendSuccess,
     sendError,
-    sendQuoteEmbed
+    sendQuoteEmbed,
   },
-  
+
   // Constants
   MESSAGES,
   ERRORS,
-  DISCORD_CONFIG
+  DISCORD_CONFIG,
 };
 ```
 
@@ -463,6 +490,7 @@ necrobot-commands/
 ### Key Files
 
 **`src/core/CommandBase.js`** - Base class for all commands
+
 ```javascript
 class CommandBase {
   constructor(options) {
@@ -504,12 +532,11 @@ module.exports = CommandBase;
 ```
 
 **`src/core/CommandOptions.js`** - Unified option builder
+
 ```javascript
 function buildCommandOptions(name, description, options = []) {
   // Slash command data
-  const slashData = new SlashCommandBuilder()
-    .setName(name)
-    .setDescription(description);
+  const slashData = new SlashCommandBuilder().setName(name).setDescription(description);
 
   // Add options
   for (const opt of options) {
@@ -526,7 +553,7 @@ function buildCommandOptions(name, description, options = []) {
 
   return {
     data: slashData,
-    options // Store original options for prefix commands
+    options, // Store original options for prefix commands
   };
 }
 
@@ -534,21 +561,19 @@ module.exports = buildCommandOptions;
 ```
 
 **Example Command** - `src/commands/misc/ping.js`
+
 ```javascript
 const CommandBase = require('../../core/CommandBase');
 const buildCommandOptions = require('../../core/CommandOptions');
 
-const { data } = buildCommandOptions(
-  'ping',
-  'Check bot latency'
-);
+const { data } = buildCommandOptions('ping', 'Check bot latency');
 
 class PingCommand extends CommandBase {
   constructor() {
     super({
       name: 'ping',
       description: 'Check bot latency',
-      data
+      data,
     });
   }
 
@@ -582,15 +607,15 @@ module.exports = new PingCommand().register();
 
 ### Command Categories
 
-| Category | Purpose | Examples |
-|----------|---------|----------|
-| `misc/` | General utilities | help, ping, info |
-| `gang/` | Gang management | create-gang, list-gangs |
-| `campaign/` | Campaign management | create-campaign, update-campaign |
-| `quote-discovery/` | Finding quotes | random-quote, search-quotes |
-| `quote-management/` | CRUD operations | add-quote, delete-quote |
-| `quote-social/` | Social features | rate-quote, tag-quote |
-| `quote-export/` | Data export | export-quotes |
+| Category            | Purpose             | Examples                         |
+| ------------------- | ------------------- | -------------------------------- |
+| `misc/`             | General utilities   | help, ping, info                 |
+| `gang/`             | Gang management     | create-gang, list-gangs          |
+| `campaign/`         | Campaign management | create-campaign, update-campaign |
+| `quote-discovery/`  | Finding quotes      | random-quote, search-quotes      |
+| `quote-management/` | CRUD operations     | add-quote, delete-quote          |
+| `quote-social/`     | Social features     | rate-quote, tag-quote            |
+| `quote-export/`     | Data export         | export-quotes                    |
 
 ### Command Registration Flow
 
@@ -809,12 +834,12 @@ All inter-module dependencies use workspace versions:
 
 **Current Versions (January 27, 2026):**
 
-| Module | Version | Status |
-|--------|---------|--------|
-| necrobot-core | 0.3.0 | ✅ Active |
-| necrobot-utils | 0.2.2 | ✅ Active |
-| necrobot-commands | 0.1.0 | ✅ Active |
-| necrobot-dashboard | 0.1.3 | ✅ Active |
+| Module             | Version | Status    |
+| ------------------ | ------- | --------- |
+| necrobot-core      | 0.3.0   | ✅ Active |
+| necrobot-utils     | 0.2.2   | ✅ Active |
+| necrobot-commands  | 0.1.0   | ✅ Active |
+| necrobot-dashboard | 0.1.3   | ✅ Active |
 
 ---
 
