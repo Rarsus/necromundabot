@@ -23,7 +23,6 @@ const RULES = {
     allowed: [
       /^[A-Z][A-Z0-9_-]*\.md$/, // UPPERCASE.md or UPPERCASE_CASE.md
       /^[A-Z][A-Z0-9_-]*-[A-Z][A-Z0-9_-]*\.md$/, // DESCRIPTOR-DESCRIPTOR.md
-      /^PHASE-\d+\.\d+[a-z]?-[A-Z_-]+\.md$/i, // PHASE-03.1-DESCRIPTOR.md
       /^README\.md$/,
       /^LICENSE$/,
       /^LICENCE$/,
