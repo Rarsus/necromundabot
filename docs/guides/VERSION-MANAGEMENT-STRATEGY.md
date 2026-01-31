@@ -591,4 +591,4 @@ https://github.com/YOUR_ORG/necromundabot/packages
 - [PUBLISHING-WORKFLOW-ORDER.md](./PUBLISHING-WORKFLOW-ORDER.md) - How the workflow enforces dependency order
 - [GITHUB-PACKAGES-PUBLISHING.md](./GITHUB-PACKAGES-PUBLISHING.md) - Publishing guide
 - [DOCKER-TROUBLESHOOTING.md](./DOCKER-TROUBLESHOOTING.md) - Docker setup
-- [../architecture/workspace-architecture.md](../architecture/workspace-architecture.md) - Workspace structure and npm workspaces setup
+- [../architecture/submodule-architecture.md](../architecture/submodule-architecture.md) - Workspace architecture (npm workspaces structure)
