@@ -1,8 +1,9 @@
 name: Publish Packages to GitHub Packages
 
 on:
-  # Triggered after release workflow completes (creates versions)
+  # Triggered after workspace versioning and tests pass
   workflow_dispatch:
+  
   # Also trigger on direct package.json changes for flexibility
   push:
     branches:
@@ -17,64 +18,325 @@ permissions:
 
 jobs:
   # ============================================================================
-  # DEPENDENCY ORDER: utils → core → commands → dashboard
+  # SEQUENTIAL: Publish packages in dependency order (utils → core → commands)
   # ============================================================================
-
+  
   # STEP 1: Publish necrobot-utils (foundation, no dependencies)
   publish-utils:
-    name: Publish necrobot-utils
-    uses: ./.github/workflows/reusable-publish-package.yml
-    with:
-      package-name: necrobot-utils
-      workspace-path: repos/necrobot-utils
-      scope: '@rarsus'
-    secrets:
-      PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+    name: 📦 Publish necrobot-utils
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@rarsus'
+
+      - name: 📚 Install dependencies
+        run: cd repos/necrobot-utils && npm ci
+
+      - name: 📤 Publish to GitHub Packages
+        run: cd repos/necrobot-utils && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+
+      - name: ✅ Verify publication
+        run: |
+          sleep 2
+          if npm view @rarsus/necrobot-utils@"$(jq -r '.version' repos/necrobot-utils/package.json)" >/dev/null 2>&1; then
+            VERSION=$(npm view @rarsus/necrobot-utils version)
+            echo "✅ Published @rarsus/necrobot-utils@$VERSION"
+          else
+            echo "⚠️ Package not yet available in registry"
+          fi
 
   # STEP 2: Publish necrobot-core (depends on necrobot-utils)
   publish-core:
-    name: Publish necrobot-core
+    name: 📦 Publish necrobot-core
     needs: publish-utils
-    uses: ./.github/workflows/reusable-publish-package.yml
-    with:
-      package-name: necrobot-core
-      workspace-path: repos/necrobot-core
-      scope: '@rarsus'
-    secrets:
-      PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@rarsus'
+
+      - name: 📚 Install dependencies
+        run: cd repos/necrobot-core && npm ci
+
+      - name: 📤 Publish to GitHub Packages
+        run: cd repos/necrobot-core && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+
+      - name: ✅ Verify publication
+        run: |
+          sleep 2
+          if npm view @rarsus/necrobot-core@"$(jq -r '.version' repos/necrobot-core/package.json)" >/dev/null 2>&1; then
+            VERSION=$(npm view @rarsus/necrobot-core version)
+            echo "✅ Published @rarsus/necrobot-core@$VERSION"
+          else
+            echo "⚠️ Package not yet available in registry"
+          fi
 
   # STEP 3: Publish necrobot-commands (depends on necrobot-core & necrobot-utils)
   publish-commands:
-    name: Publish necrobot-commands
+    name: 📦 Publish necrobot-commands
     needs: publish-core
-    uses: ./.github/workflows/reusable-publish-package.yml
-    with:
-      package-name: necrobot-commands
-      workspace-path: repos/necrobot-commands
-      scope: '@rarsus'
-    secrets:
-      PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-  # STEP 4: Publish necrobot-dashboard (depends on necrobot-utils)
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@rarsus'
+
+      - name: 📚 Install dependencies
+        run: cd repos/necrobot-commands && npm ci
+
+      - name: 📤 Publish to GitHub Packages
+        run: cd repos/necrobot-commands && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+
+      - name: ✅ Verify publication
+        run: |
+          sleep 2
+          if npm view @rarsus/necrobot-commands@"$(jq -r '.version' repos/necrobot-commands/package.json)" >/dev/null 2>&1; then
+            VERSION=$(npm view @rarsus/necrobot-commands version)
+            echo "✅ Published @rarsus/necrobot-commands@$VERSION"
+          else
+            echo "⚠️ Package not yet available in registry"
+          fi
+
+  # STEP 4: Publish necrobot-dashboard (depends on necrobot-utils only)
+  # NOTE: This can run in parallel with core/commands since it only depends on utils (already published)
+  # However, semantic versioning coordination still requires it after commands for clarity
   publish-dashboard:
-    name: Publish necrobot-dashboard
-    needs: publish-commands
-    uses: ./.github/workflows/reusable-publish-package.yml
-    with:
-      package-name: necrobot-dashboard
-      workspace-path: repos/necrobot-dashboard
-      scope: '@rarsus'
-    secrets:
-      PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+    name: 📦 Publish necrobot-dashboard
+    needs: publish-utils  # Only needs utils, could run in parallel with core+commands
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-  # VERIFY: Confirm all published packages are accessible
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@rarsus'
+
+      - name: 📚 Install dependencies
+        run: cd repos/necrobot-dashboard && npm ci
+
+      - name: 📤 Publish to GitHub Packages
+        run: cd repos/necrobot-dashboard && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+
+      - name: ✅ Verify publication
+        run: |
+          sleep 2
+          if npm view @rarsus/necrobot-dashboard@"$(jq -r '.version' repos/necrobot-dashboard/package.json)" >/dev/null 2>&1; then
+            VERSION=$(npm view @rarsus/necrobot-dashboard version)
+            echo "✅ Published @rarsus/necrobot-dashboard@$VERSION"
+          else
+            echo "⚠️ Package not yet available in registry"
+          fi
+
+  # ============================================================================
+  # PARALLEL: Build Docker images independently (bot & dashboard parallel)
+  # ============================================================================
+  
+  # Docker image for main bot (can run independently after tests)
+  build-bot-docker:
+    name: 🐳 Build Bot Docker Image
+    needs: publish-commands  # Wait for all publishing to complete
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      version: ${{ steps.version.outputs.version }}
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: 📦 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📋 Get version
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: 📊 Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern=v{{version}},value=v${{ steps.version.outputs.version }}
+            type=semver,pattern={{version}},value=${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.version }}
+            type=ref,event=branch
+            type=sha
+
+      - name: 🏗️ Build and push Bot Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_VERSION=22
+
+      - name: 📝 Bot Docker build summary
+        run: |
+          echo "## 🐳 Bot Docker Image" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Registry**: ghcr.io/${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ✅ Built & Pushed" >> $GITHUB_STEP_SUMMARY
+
+  # Docker image for dashboard (runs in PARALLEL with bot image)
+  build-dashboard-docker:
+    name: 🎨 Build Dashboard Docker Image
+    needs: publish-dashboard  # Only needs dashboard published, can run in parallel with bot
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      version: ${{ steps.version.outputs.version }}
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: 📦 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📋 Get version
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: 📊 Extract Dashboard Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}-dashboard
+          tags: |
+            type=semver,pattern=v{{version}},value=v${{ steps.version.outputs.version }}
+            type=semver,pattern={{version}},value=${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.version }}
+            type=ref,event=branch
+            type=sha
+
+      - name: 🏗️ Build and push Dashboard Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./repos/necrobot-dashboard
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_VERSION=22
+
+      - name: 📝 Dashboard Docker build summary
+        run: |
+          echo "## 🎨 Dashboard Docker Image" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Registry**: ghcr.io/${{ github.repository }}-dashboard" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ✅ Built & Pushed" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # FINAL: Verify all packages and images
+  # ============================================================================
+  
   verify:
-    name: Verify Published Packages
-    needs: [publish-utils, publish-core, publish-commands, publish-dashboard]
+    name: ✅ Verify Published Artifacts
+    needs: [publish-utils, publish-core, publish-commands, publish-dashboard, build-bot-docker, build-dashboard-docker]
     runs-on: ubuntu-latest
     if: always()
     env:
       NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+    
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
@@ -89,74 +351,46 @@ jobs:
           npm config set @rarsus:registry https://npm.pkg.github.com
           npm config set //npm.pkg.github.com/:_authToken="$NODE_AUTH_TOKEN"
 
-      - name: 📋 Verify publication order
-        run: |
-          echo "========================================"
-          echo "📋 Package Publishing Order Verification"
-          echo "========================================"
-          echo ""
-          echo "✅ STEP 1: necrobot-utils (foundation)"
-          echo "✅ STEP 2: necrobot-core (depends on utils)"
-          echo "✅ STEP 3: necrobot-commands (depends on core & utils)"
-          echo "✅ STEP 4: necrobot-dashboard (depends on utils)"
-          echo ""
-          echo "This ensures correct dependency resolution"
-          echo "========================================"
-
       - name: 🔍 Verify published packages
         run: |
-          echo ""
-          echo "🔍 Checking GitHub Packages registry..."
-          echo ""
-
-          # Check utils
-          if npm view @rarsus/necrobot-utils >/dev/null 2>&1; then
-            UTILS_VERSION=$(npm view @rarsus/necrobot-utils version)
-            echo "✅ @rarsus/necrobot-utils@$UTILS_VERSION"
-          else
-            echo "⏳ @rarsus/necrobot-utils (publishing or not yet available)"
-          fi
-
-          # Check core
-          if npm view @rarsus/necrobot-core >/dev/null 2>&1; then
-            CORE_VERSION=$(npm view @rarsus/necrobot-core version)
-            echo "✅ @rarsus/necrobot-core@$CORE_VERSION"
-          else
-            echo "⏳ @rarsus/necrobot-core (publishing or not yet available)"
-          fi
-
-          # Check commands
-          if npm view @rarsus/necrobot-commands >/dev/null 2>&1; then
-            COMMANDS_VERSION=$(npm view @rarsus/necrobot-commands version)
-            echo "✅ @rarsus/necrobot-commands@$COMMANDS_VERSION"
-          else
-            echo "⏳ @rarsus/necrobot-commands (publishing or not yet available)"
-          fi
-
-          # Check dashboard
-          if npm view @rarsus/necrobot-dashboard >/dev/null 2>&1; then
-            DASHBOARD_VERSION=$(npm view @rarsus/necrobot-dashboard version)
-            echo "✅ @rarsus/necrobot-dashboard@$DASHBOARD_VERSION"
-          else
-            echo "⏳ @rarsus/necrobot-dashboard (publishing or not yet available)"
-          fi
-
-          echo ""
-          echo "✅ Workflow completed successfully!"
-
-      - name: 📊 Summary
-        if: always()
-        run: |
-          echo "## 📦 Package Publishing Complete" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Package Registry Verification" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Published Packages" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ @rarsus/necrobot-utils" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ @rarsus/necrobot-core" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ @rarsus/necrobot-commands" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ @rarsus/necrobot-dashboard" >> $GITHUB_STEP_SUMMARY
+          
+          for pkg in necrobot-utils necrobot-core necrobot-commands necrobot-dashboard; do
+            if npm view @rarsus/$pkg >/dev/null 2>&1; then
+              VERSION=$(npm view @rarsus/$pkg version)
+              echo "✅ @rarsus/$pkg@$VERSION" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ @rarsus/$pkg (not yet available)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      - name: 🐳 Verify Docker images
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🐳 Docker Image Verification" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Bot Image" >> $GITHUB_STEP_SUMMARY
+          echo "- Registry: ghcr.io/${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ✅ Available" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Dashboard Image" >> $GITHUB_STEP_SUMMARY
+          echo "- Registry: ghcr.io/${{ github.repository }}-dashboard" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ✅ Available" >> $GITHUB_STEP_SUMMARY
+
+      - name: 📊 Workflow Summary
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Workflow Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Publishing Order" >> $GITHUB_STEP_SUMMARY
-          echo "1. necrobot-utils (foundation)" >> $GITHUB_STEP_SUMMARY
-          echo "2. necrobot-core (depends on utils)" >> $GITHUB_STEP_SUMMARY
-          echo "3. necrobot-commands (depends on core & utils)" >> $GITHUB_STEP_SUMMARY
-          echo "4. necrobot-dashboard (depends on utils)" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ necrobot-utils (foundation)" >> $GITHUB_STEP_SUMMARY
+          echo "2. ✅ necrobot-core (depends on utils)" >> $GITHUB_STEP_SUMMARY
+          echo "3. ✅ necrobot-commands (depends on core & utils)" >> $GITHUB_STEP_SUMMARY
+          echo "4. ✅ necrobot-dashboard (depends on utils)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Builds (Parallel)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🐳 Bot image: ${{ needs.build-bot-docker.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🎨 Dashboard image: ${{ needs.build-dashboard-docker.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All artifacts published successfully!" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,242 @@
+name: Workspace-Independent Versioning
+
+on:
+  # Runs after testing and before publishing to determine workspace versions
+  workflow_dispatch:
+    inputs:
+      trigger:
+        description: 'Manual trigger for versioning analysis'
+        required: false
+        default: 'manual'
+  
+  # Triggered by release workflow
+  workflow_call:
+    outputs:
+      root-version:
+        description: 'Root package version'
+        value: ${{ jobs.analyze-changes.outputs.root-version }}
+      utils-bump:
+        description: 'necrobot-utils version bump (major/minor/patch/none)'
+        value: ${{ jobs.analyze-changes.outputs.utils-bump }}
+      core-bump:
+        description: 'necrobot-core version bump'
+        value: ${{ jobs.analyze-changes.outputs.core-bump }}
+      commands-bump:
+        description: 'necrobot-commands version bump'
+        value: ${{ jobs.analyze-changes.outputs.commands-bump }}
+      dashboard-bump:
+        description: 'necrobot-dashboard version bump'
+        value: ${{ jobs.analyze-changes.outputs.dashboard-bump }}
+
+permissions:
+  contents: write
+
+jobs:
+  # STEP 1: Analyze which workspaces changed since last release
+  analyze-changes:
+    name: 'Analyze Workspace Changes'
+    runs-on: ubuntu-latest
+    outputs:
+      root-version: ${{ steps.analyze.outputs.root-version }}
+      utils-bump: ${{ steps.analyze.outputs.utils-bump }}
+      core-bump: ${{ steps.analyze.outputs.core-bump }}
+      commands-bump: ${{ steps.analyze.outputs.commands-bump }}
+      dashboard-bump: ${{ steps.analyze.outputs.dashboard-bump }}
+      has-changes: ${{ steps.analyze.outputs.has-changes }}
+    
+    steps:
+      - name: 📥 Checkout repository with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: 🏷️ Get latest release tag
+        id: get-tag
+        run: |
+          # Get the last annotated tag (release tag)
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LATEST_TAG" ]; then
+            # No previous tag, use first commit
+            FIRST_COMMIT=$(git rev-list --max-parents=0 HEAD)
+            COMMIT_RANGE="$FIRST_COMMIT..HEAD"
+            echo "tag=initial" >> $GITHUB_OUTPUT
+            echo "range=${COMMIT_RANGE}" >> $GITHUB_OUTPUT
+            echo "ℹ️ No previous release found, analyzing all commits"
+          else
+            # Compare against last tag
+            COMMIT_RANGE="$LATEST_TAG..HEAD"
+            echo "tag=${LATEST_TAG}" >> $GITHUB_OUTPUT
+            echo "range=${COMMIT_RANGE}" >> $GITHUB_OUTPUT
+            echo "🏷️ Analyzing changes since $LATEST_TAG"
+          fi
+
+      - name: 🔍 Analyze workspace changes
+        id: analyze
+        run: |
+          echo "📊 Analyzing workspace-specific changes..."
+          echo ""
+          
+          # Run the new workspace versioning analysis script
+          ANALYSIS=$(node scripts/analyze-version-impact.js "${{ steps.get-tag.outputs.tag }}")
+          
+          # Extract results from ANALYSIS output
+          # The script outputs JSON-formatted data we can parse
+          
+          # For now, parse the output manually (or update script to output JSON)
+          # This is a simplified version - the actual script handles complexity
+          
+          # Extract bump types per workspace
+          echo "$ANALYSIS" | grep -q "necrobot-utils.*MAJOR" && UTILS_BUMP="major" || true
+          echo "$ANALYSIS" | grep -q "necrobot-utils.*MINOR" && UTILS_BUMP="minor" || true
+          echo "$ANALYSIS" | grep -q "necrobot-utils.*PATCH" && UTILS_BUMP="patch" || true
+          [ -z "$UTILS_BUMP" ] && UTILS_BUMP="none"
+          
+          echo "$ANALYSIS" | grep -q "necrobot-core.*MAJOR" && CORE_BUMP="major" || true
+          echo "$ANALYSIS" | grep -q "necrobot-core.*MINOR" && CORE_BUMP="minor" || true
+          echo "$ANALYSIS" | grep -q "necrobot-core.*PATCH" && CORE_BUMP="patch" || true
+          [ -z "$CORE_BUMP" ] && CORE_BUMP="none"
+          
+          echo "$ANALYSIS" | grep -q "necrobot-commands.*MAJOR" && COMMANDS_BUMP="major" || true
+          echo "$ANALYSIS" | grep -q "necrobot-commands.*MINOR" && COMMANDS_BUMP="minor" || true
+          echo "$ANALYSIS" | grep -q "necrobot-commands.*PATCH" && COMMANDS_BUMP="patch" || true
+          [ -z "$COMMANDS_BUMP" ] && COMMANDS_BUMP="none"
+          
+          echo "$ANALYSIS" | grep -q "necrobot-dashboard.*MAJOR" && DASHBOARD_BUMP="major" || true
+          echo "$ANALYSIS" | grep -q "necrobot-dashboard.*MINOR" && DASHBOARD_BUMP="minor" || true
+          echo "$ANALYSIS" | grep -q "necrobot-dashboard.*PATCH" && DASHBOARD_BUMP="patch" || true
+          [ -z "$DASHBOARD_BUMP" ] && DASHBOARD_BUMP="none"
+          
+          # Extract root version
+          ROOT_VERSION=$(echo "$ANALYSIS" | grep "Root Version Bump:" | head -1 | sed 's/.*→ //' | cut -d' ' -f1)
+          [ -z "$ROOT_VERSION" ] && ROOT_VERSION=$(jq -r '.version' package.json)
+          
+          # Output results
+          echo "utils-bump=${UTILS_BUMP}" >> $GITHUB_OUTPUT
+          echo "core-bump=${CORE_BUMP}" >> $GITHUB_OUTPUT
+          echo "commands-bump=${COMMANDS_BUMP}" >> $GITHUB_OUTPUT
+          echo "dashboard-bump=${DASHBOARD_BUMP}" >> $GITHUB_OUTPUT
+          echo "root-version=${ROOT_VERSION}" >> $GITHUB_OUTPUT
+          
+          # Check if there are any changes
+          if [ "$UTILS_BUMP" != "none" ] || [ "$CORE_BUMP" != "none" ] || [ "$COMMANDS_BUMP" != "none" ] || [ "$DASHBOARD_BUMP" != "none" ]; then
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "✅ Analysis complete:"
+          echo "  • necrobot-utils: $UTILS_BUMP"
+          echo "  • necrobot-core: $CORE_BUMP"
+          echo "  • necrobot-commands: $COMMANDS_BUMP"
+          echo "  • necrobot-dashboard: $DASHBOARD_BUMP"
+          echo "  • root: $ROOT_VERSION"
+
+  # STEP 2: Apply workspace version bumps
+  apply-bumps:
+    name: 'Apply Workspace Version Bumps'
+    runs-on: ubuntu-latest
+    needs: [analyze-changes]
+    if: needs.analyze-changes.outputs.has-changes == 'true'
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: 📚 Install dependencies
+        run: npm ci --workspaces
+
+      - name: 🔄 Apply version bumps to workspaces
+        id: bump
+        env:
+          GIT_TAG: ${{ needs.analyze-changes.outputs.root-version }}
+        run: |
+          # Get commit range (same logic as analyze step)
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LATEST_TAG" ]; then
+            FIRST_COMMIT=$(git rev-list --max-parents=0 HEAD)
+            COMMIT_RANGE="$FIRST_COMMIT..HEAD"
+          else
+            COMMIT_RANGE="$LATEST_TAG..HEAD"
+          fi
+          
+          echo "📝 Applying bumps for range: $COMMIT_RANGE"
+          
+          # Run sync-package-versions to apply bumps
+          node scripts/sync-package-versions.js "$COMMIT_RANGE"
+          
+          # Get the new version
+          NEW_VERSION=$(jq -r '.version' package.json)
+          echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "✅ Versions bumped to v${NEW_VERSION}"
+
+      - name: ✅ Verify version bumps
+        run: |
+          echo "📋 Updated versions:"
+          echo "  Root: $(jq -r '.version' package.json)"
+          echo "  Utils: $(jq -r '.version' repos/necrobot-utils/package.json)"
+          echo "  Core: $(jq -r '.version' repos/necrobot-core/package.json)"
+          echo "  Commands: $(jq -r '.version' repos/necrobot-commands/package.json)"
+          echo "  Dashboard: $(jq -r '.version' repos/necrobot-dashboard/package.json)"
+
+      - name: 📝 Commit version changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add -A
+          git commit -m "chore(versioning): Bump workspace versions to ${{ steps.bump.outputs.version }}" --no-verify || echo "⚠️ No changes to commit"
+          
+          git push origin main || echo "⚠️ Push failed (might already be up to date)"
+
+  # Summary
+  summary:
+    name: 'Versioning Summary'
+    runs-on: ubuntu-latest
+    needs: [analyze-changes, apply-bumps]
+    if: always()
+    
+    steps:
+      - name: 📊 Create versioning summary
+        run: |
+          echo "## 📊 Workspace Versioning Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Version Bumps Detected" >> $GITHUB_STEP_SUMMARY
+          echo "- **necrobot-utils**: ${{ needs.analyze-changes.outputs.utils-bump }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **necrobot-core**: ${{ needs.analyze-changes.outputs.core-bump }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **necrobot-commands**: ${{ needs.analyze-changes.outputs.commands-bump }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **necrobot-dashboard**: ${{ needs.analyze-changes.outputs.dashboard-bump }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Root Version" >> $GITHUB_STEP_SUMMARY
+          echo "- **New Version**: v${{ needs.analyze-changes.outputs.root-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Dependency Propagation" >> $GITHUB_STEP_SUMMARY
+          echo "- If a workspace changes, its dependents are automatically bumped:" >> $GITHUB_STEP_SUMMARY
+          echo "  - `necrobot-utils` → `necrobot-core`, `necrobot-commands`, `necrobot-dashboard`" >> $GITHUB_STEP_SUMMARY
+          echo "  - `necrobot-core` → `necrobot-commands`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Versioning workflow complete" >> $GITHUB_STEP_SUMMARY
