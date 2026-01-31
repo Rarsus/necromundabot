@@ -327,17 +327,20 @@ docker stats --no-stream necromundabot
 ### Update Bot Code
 
 ```bash
-# Pull latest code
+# Pull latest code (includes all npm workspaces)
 git pull
-git submodule update --recursive
 
-# Rebuild image
+# Install any new dependencies
+npm install --workspaces
+
+# Rebuild images
 docker-compose build
 
-# Restart container
+# Restart containers
 docker-compose up -d
 
 # Database automatically persists from volume
+# Both bot and dashboard containers restart gracefully
 ```
 
 ### Rollback

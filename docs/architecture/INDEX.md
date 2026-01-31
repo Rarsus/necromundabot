@@ -5,6 +5,7 @@ Complete architecture and design documentation for NecromundaBot.
 ## Core Architecture
 
 ### [system-architecture.md](./system-architecture.md)
+
 **High-level system overview and component relationships**
 
 - Architecture diagram showing all components
@@ -26,9 +27,11 @@ Complete architecture and design documentation for NecromundaBot.
 ---
 
 ### [submodule-architecture.md](./submodule-architecture.md)
-**Detailed structure and responsibilities of each Git submodule**
+
+**Detailed structure and responsibilities of each npm workspace**
 
 #### necrobot-core (Bot Engine)
+
 - Directory structure and key files
 - Bot initialization and lifecycle
 - Event management and routing
@@ -37,6 +40,7 @@ Complete architecture and design documentation for NecromundaBot.
 - Dependencies and exports
 
 #### necrobot-utils (Services & Utilities)
+
 - Service layer implementation
 - Database operations and abstraction
 - Business logic services (QuoteService, ReminderService)
@@ -45,6 +49,7 @@ Complete architecture and design documentation for NecromundaBot.
 - Response formatting helpers
 
 #### necrobot-commands (Discord Commands)
+
 - Command structure and organization
 - CommandBase implementation
 - CommandOptions builder
@@ -53,6 +58,7 @@ Complete architecture and design documentation for NecromundaBot.
 - Dependencies and version info
 
 #### necrobot-dashboard (Web UI)
+
 - Dashboard structure and components
 - React hooks and state management
 - API integration patterns
@@ -64,6 +70,7 @@ Complete architecture and design documentation for NecromundaBot.
 ---
 
 ### [database-architecture.md](./database-architecture.md)
+
 **Data model, schema design, and persistence patterns**
 
 - Design principles (guild-aware, immutability, referential integrity)
@@ -89,6 +96,7 @@ Complete architecture and design documentation for NecromundaBot.
 ---
 
 ### [design-patterns.md](./design-patterns.md)
+
 **Software design patterns used throughout the codebase**
 
 12 Design Patterns Explained:
@@ -117,6 +125,7 @@ Complete architecture and design documentation for NecromundaBot.
 ---
 
 ### [guild-aware-architecture.md](./guild-aware-architecture.md)
+
 **Guild context enforcement and multi-guild data isolation**
 
 - Why guild-aware architecture is necessary
@@ -164,30 +173,35 @@ Complete architecture and design documentation for NecromundaBot.
 ## Key Architectural Concepts
 
 ### Modularity & Independence
-- 4 independent Git submodules
+
+- 4 independent npm workspaces (single git repository)
 - Each with own version, tests, and responsibility
 - NPM workspace resolution for local development
 - Clear dependency boundaries
 
 ### Guild-Aware Design
+
 - **Mandatory guild context** for all data operations
 - Data isolation across guilds
 - Supports 10,000+ guilds in single database
 - Per-guild customization capability
 
 ### Service Layer Pattern
+
 - **DatabaseService** - Low-level database access
 - **GuildAwareDatabaseService** - Guild context enforcement
 - **BusinessServices** (QuoteService, etc.) - High-level logic
 - **Helpers** - Formatting, validation, utilities
 
 ### Command Pattern
+
 - **CommandBase** - Automatic error handling and lifecycle
 - **Unified options** - Same definition for slash + prefix
 - **Guild context extraction** - Automatic from interaction
 - **Response helpers** - Consistent Discord formatting
 
 ### Event-Driven Architecture
+
 - Discord.js events trigger handlers
 - Service layer executes business logic
 - Async/await for all I/O operations
@@ -196,6 +210,7 @@ Complete architecture and design documentation for NecromundaBot.
 ## Development Workflows
 
 ### Adding a New Command
+
 1. Choose appropriate category under `repos/necrobot-commands/src/commands/`
 2. Extend `CommandBase`
 3. Use `buildCommandOptions()` for options
@@ -206,6 +221,7 @@ Complete architecture and design documentation for NecromundaBot.
 8. Register with Discord API
 
 ### Adding a New Service
+
 1. Create in `repos/necrobot-utils/src/services/`
 2. Accept `db` in constructor (dependency injection)
 3. Validate guild context in all methods
@@ -215,6 +231,7 @@ Complete architecture and design documentation for NecromundaBot.
 7. Use from commands via import
 
 ### Adding Database Feature
+
 1. Add table to schema in `schema-enhancement.js`
 2. Create migration if altering existing table
 3. Create guild-aware service for data access
@@ -223,6 +240,7 @@ Complete architecture and design documentation for NecromundaBot.
 6. Test in both development and staging
 
 ### Release Workflow
+
 1. Make changes and commit with conventional commit messages
 2. Run tests: `npm test`
 3. Run linter: `npm run lint`
@@ -232,42 +250,46 @@ Complete architecture and design documentation for NecromundaBot.
 
 ## Versioning
 
-| Component | Current Version | Status |
-|-----------|-----------------|--------|
-| necrobot-core | 0.3.0 | ✅ Active |
-| necrobot-utils | 0.2.2 | ✅ Active |
-| necrobot-commands | 0.1.0 | ✅ Active |
-| necrobot-dashboard | 0.1.3 | ✅ Active |
+| Component          | Current Version | Status    |
+| ------------------ | --------------- | --------- |
+| necrobot-core      | 0.3.0           | ✅ Active |
+| necrobot-utils     | 0.2.2           | ✅ Active |
+| necrobot-commands  | 0.1.0           | ✅ Active |
+| necrobot-dashboard | 0.1.3           | ✅ Active |
 
 **Versioning Scheme:** Semantic Versioning (MAJOR.MINOR.PATCH)
+
 - **MAJOR:** Breaking changes
 - **MINOR:** New features (new source files in src/)
 - **PATCH:** Bug fixes, refactors, tests
 
 ## Performance Characteristics
 
-| Operation | Target | Current |
-|-----------|--------|---------|
-| Bot startup | < 3 seconds | ~1-2 seconds |
-| Command response | < 200ms | ~50-100ms |
-| Database query | < 100ms | ~10-50ms |
-| Code coverage | 90%+ | 79.5% lines |
+| Operation        | Target      | Current      |
+| ---------------- | ----------- | ------------ |
+| Bot startup      | < 3 seconds | ~1-2 seconds |
+| Command response | < 200ms     | ~50-100ms    |
+| Database query   | < 100ms     | ~10-50ms     |
+| Code coverage    | 90%+        | 79.5% lines  |
 
 ## Testing Overview
 
 ### Test Organization
+
 - Unit tests: Single function/class in isolation
 - Integration tests: Multiple components together
 - Service tests: Business logic with real dependencies
 - Command tests: Discord command execution
 
 ### Coverage Requirements
+
 - necrobot-core: 85%+ lines
 - necrobot-utils: 90%+ lines
 - necrobot-commands: 80%+ lines
 - necrobot-dashboard: 85%+ lines
 
 ### Test Patterns
+
 - In-memory SQLite for database tests
 - Mock Discord.js for interaction tests
 - Dependency injection for isolation
@@ -277,18 +299,21 @@ Complete architecture and design documentation for NecromundaBot.
 ## Security & Reliability
 
 ### Data Protection
+
 - ✅ Guild context isolation
 - ✅ SQL injection prevention (parameterized queries)
 - ✅ Input validation at service layer
 - ✅ Error messages don't leak sensitive info
 
 ### Error Handling
+
 - ✅ CommandBase catches all errors
 - ✅ Middleware provides logging
 - ✅ User-friendly error messages
 - ✅ Graceful failure modes
 
 ### Testing & Quality
+
 - ✅ TDD-first development
 - ✅ 100% test pass rate
 - ✅ ESLint for code quality
@@ -297,21 +322,25 @@ Complete architecture and design documentation for NecromundaBot.
 ## Quick Links
 
 ### Getting Started
+
 - [system-architecture.md](./system-architecture.md) - Start here for overview
 - [submodule-architecture.md](./submodule-architecture.md) - Understand module structure
 - [database-architecture.md](./database-architecture.md) - Learn data model
 
 ### Implementation Guides
+
 - [design-patterns.md](./design-patterns.md) - Implementation patterns
 - [guild-aware-architecture.md](./guild-aware-architecture.md) - Guild isolation
 - [docs/guides/creating-commands.md](../user-guides/creating-commands.md) - Command creation
 
 ### Testing & Quality
+
 - [docs/guides/testing-guide.md](../user-guides/testing-guide.md) - TDD approach
 - [docs/testing/test-naming-convention-guide.md](../testing/test-naming-convention-guide.md) - Test naming
 - [docs/testing/test-coverage-baseline-strategy.md](../testing/test-coverage-baseline-strategy.md) - Coverage strategy
 
 ### Operations
+
 - [docs/guides/RELEASE-PROCESS.md](../guides/RELEASE-PROCESS.md) - Release workflow
 - [docs/user-guides/docker-setup.md](../user-guides/docker-setup.md) - Docker deployment
 
@@ -322,6 +351,7 @@ Complete architecture and design documentation for NecromundaBot.
 **Status:** Complete Architecture Suite
 
 ### Document List
+
 1. system-architecture.md - 600+ lines
 2. submodule-architecture.md - 800+ lines
 3. database-architecture.md - 700+ lines
