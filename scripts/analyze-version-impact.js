@@ -181,6 +181,12 @@ class VersionImpactAnalyzer {
 
     if (!changes || Object.keys(changes).length === 0) {
       console.log('⏭️  No changes detected - no version bumps needed\n');
+      // Output structured data for workflow parsing (all 'none')
+      console.log('necrobot-utils: NONE');
+      console.log('necrobot-core: NONE');
+      console.log('necrobot-commands: NONE');
+      console.log('necrobot-dashboard: NONE');
+      console.log('Root Version Bump: none');
       return null;
     }
 
@@ -197,6 +203,13 @@ class VersionImpactAnalyzer {
       }
     });
     console.log('');
+
+    // Output structured data for workflow parsing (first set all to NONE)
+    const workspaces = ['necrobot-utils', 'necrobot-core', 'necrobot-commands', 'necrobot-dashboard'];
+    workspaces.forEach((workspace) => {
+      const bumpType = propagated[workspace] || 'none';
+      console.log(`${workspace}: ${bumpType.toUpperCase()}`);
+    });
 
     // Determine highest bump for root version
     const bumpPriority = { major: 3, minor: 2, patch: 1, none: 0 };
@@ -232,6 +245,7 @@ class VersionImpactAnalyzer {
       return newVersion;
     } else {
       console.log('⏭️  Root version bump not needed (only docs/chore changes)\n');
+      console.log('Root Version Bump: none');
       return null;
     }
   }
@@ -256,14 +270,11 @@ if (require.main === module) {
     const analyzer = new VersionImpactAnalyzer(lastTag);
     const recommendation = analyzer.analyze(currentVersion);
 
-    if (recommendation) {
-      process.exit(0);
-    } else {
-      process.exit(1);
-    }
+    // Always exit with 0 on success (whether there are changes or not)
+    process.exit(0);
   } catch (error) {
     console.error(`❌ Error: ${error.message}`);
-    process.exit(2);
+    process.exit(1);
   }
 }
 

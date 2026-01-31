@@ -109,7 +109,13 @@ jobs:
           echo ""
           
           # Run analysis script that now uses workspace-independent detection
-          node scripts/analyze-version-impact.js "${{ steps.get-tag.outputs.tag }}" > analysis_output.txt 2>&1
+          # Add error handling to show script output if it fails
+          if ! node scripts/analyze-version-impact.js "${{ steps.get-tag.outputs.tag }}" > analysis_output.txt 2>&1; then
+            echo "❌ Analysis script failed"
+            echo "=== Script output ==="
+            cat analysis_output.txt
+            exit 1
+          fi
           
           cat analysis_output.txt
           
@@ -122,62 +128,28 @@ jobs:
           CORE_BUMP="none"
           COMMANDS_BUMP="none"
           DASHBOARD_BUMP="none"
+          ROOT_BUMP="none"
           HAS_CHANGES="false"
           
-          # Extract bump levels (simplified parsing - script should output JSON for robustness)
-          if echo "$ANALYSIS" | grep -q "necrobot-utils.*MAJOR"; then
-            UTILS_BUMP="major"
-            HAS_CHANGES="true"
-          elif echo "$ANALYSIS" | grep -q "necrobot-utils.*MINOR"; then
-            UTILS_BUMP="minor"
-            HAS_CHANGES="true"
-          elif echo "$ANALYSIS" | grep -q "necrobot-utils.*PATCH"; then
-            UTILS_BUMP="patch"
+          # Extract bump levels from script output
+          # Script outputs lines like: necrobot-utils: MAJOR
+          UTILS_BUMP=$(echo "$ANALYSIS" | grep "^necrobot-utils:" | awk '{print tolower($NF)}' || echo "none")
+          CORE_BUMP=$(echo "$ANALYSIS" | grep "^necrobot-core:" | awk '{print tolower($NF)}' || echo "none")
+          COMMANDS_BUMP=$(echo "$ANALYSIS" | grep "^necrobot-commands:" | awk '{print tolower($NF)}' || echo "none")
+          DASHBOARD_BUMP=$(echo "$ANALYSIS" | grep "^necrobot-dashboard:" | awk '{print tolower($NF)}' || echo "none")
+          ROOT_BUMP=$(echo "$ANALYSIS" | grep "^Root Version Bump:" | awk '{print tolower($NF)}' || echo "none")
+          
+          # Check if there are any changes (any bump other than 'none')
+          if [[ "$UTILS_BUMP" != "none" ]] || [[ "$CORE_BUMP" != "none" ]] || [[ "$COMMANDS_BUMP" != "none" ]] || [[ "$DASHBOARD_BUMP" != "none" ]]; then
             HAS_CHANGES="true"
           fi
-          
-          if echo "$ANALYSIS" | grep -q "necrobot-core.*MAJOR"; then
-            CORE_BUMP="major"
-            HAS_CHANGES="true"
-          elif echo "$ANALYSIS" | grep -q "necrobot-core.*MINOR"; then
-            CORE_BUMP="minor"
-            HAS_CHANGES="true"
-          elif echo "$ANALYSIS" | grep -q "necrobot-core.*PATCH"; then
-            CORE_BUMP="patch"
-            HAS_CHANGES="true"
-          fi
-          
-          if echo "$ANALYSIS" | grep -q "necrobot-commands.*MAJOR"; then
-            COMMANDS_BUMP="major"
-            HAS_CHANGES="true"
-          elif echo "$ANALYSIS" | grep -q "necrobot-commands.*MINOR"; then
-            COMMANDS_BUMP="minor"
-            HAS_CHANGES="true"
-          elif echo "$ANALYSIS" | grep -q "necrobot-commands.*PATCH"; then
-            COMMANDS_BUMP="patch"
-            HAS_CHANGES="true"
-          fi
-          
-          if echo "$ANALYSIS" | grep -q "necrobot-dashboard.*MAJOR"; then
-            DASHBOARD_BUMP="major"
-            HAS_CHANGES="true"
-          elif echo "$ANALYSIS" | grep -q "necrobot-dashboard.*MINOR"; then
-            DASHBOARD_BUMP="minor"
-            HAS_CHANGES="true"
-          elif echo "$ANALYSIS" | grep -q "necrobot-dashboard.*PATCH"; then
-            DASHBOARD_BUMP="patch"
-            HAS_CHANGES="true"
-          fi
-          
-          # Extract or calculate root version
-          ROOT_VERSION=$(echo "$ANALYSIS" | grep "Root Version Bump:" | head -1 | sed 's/.*→ //' | cut -d' ' -f1 || jq -r '.version' package.json)
           
           # Output for next jobs
           echo "utils-bump=${UTILS_BUMP}" >> $GITHUB_OUTPUT
           echo "core-bump=${CORE_BUMP}" >> $GITHUB_OUTPUT
           echo "commands-bump=${COMMANDS_BUMP}" >> $GITHUB_OUTPUT
           echo "dashboard-bump=${DASHBOARD_BUMP}" >> $GITHUB_OUTPUT
-          echo "root-version=${ROOT_VERSION}" >> $GITHUB_OUTPUT
+          echo "root-version=${ROOT_BUMP}" >> $GITHUB_OUTPUT
           echo "has-changes=${HAS_CHANGES}" >> $GITHUB_OUTPUT
           
           echo ""
@@ -186,7 +158,7 @@ jobs:
           echo "  • necrobot-core: $CORE_BUMP"
           echo "  • necrobot-commands: $COMMANDS_BUMP"
           echo "  • necrobot-dashboard: $DASHBOARD_BUMP"
-          echo "  • Root version: $ROOT_VERSION"
+          echo "  • Has changes: $HAS_CHANGES"
 
   # ════════════════════════════════════════════════════════════════════════════
   # SEQUENTIAL PHASE 3: Apply Version Bumps & Create Tags
