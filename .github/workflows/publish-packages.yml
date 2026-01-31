@@ -19,176 +19,56 @@ permissions:
 jobs:
   # ============================================================================
   # SEQUENTIAL: Publish packages in dependency order (utils → core → commands)
+  # Using reusable workflow for consistency and reduced duplication
   # ============================================================================
   
   # STEP 1: Publish necrobot-utils (foundation, no dependencies)
   publish-utils:
     name: 📦 Publish necrobot-utils
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
-    
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@rarsus'
-
-      - name: 📚 Install dependencies
-        run: cd repos/necrobot-utils && npm ci
-
-      - name: 📤 Publish to GitHub Packages
-        run: cd repos/necrobot-utils && npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
-
-      - name: ✅ Verify publication
-        run: |
-          sleep 2
-          if npm view @rarsus/necrobot-utils@"$(jq -r '.version' repos/necrobot-utils/package.json)" >/dev/null 2>&1; then
-            VERSION=$(npm view @rarsus/necrobot-utils version)
-            echo "✅ Published @rarsus/necrobot-utils@$VERSION"
-          else
-            echo "⚠️ Package not yet available in registry"
-          fi
+    uses: ./.github/workflows/reusable-publish-package.yml
+    with:
+      package-name: necrobot-utils
+      workspace-path: repos/necrobot-utils
+      scope: '@rarsus'
+    secrets:
+      PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
 
   # STEP 2: Publish necrobot-core (depends on necrobot-utils)
   publish-core:
     name: 📦 Publish necrobot-core
     needs: publish-utils
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
-    
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@rarsus'
-
-      - name: 📚 Install dependencies
-        run: cd repos/necrobot-core && npm ci
-
-      - name: 📤 Publish to GitHub Packages
-        run: cd repos/necrobot-core && npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
-
-      - name: ✅ Verify publication
-        run: |
-          sleep 2
-          if npm view @rarsus/necrobot-core@"$(jq -r '.version' repos/necrobot-core/package.json)" >/dev/null 2>&1; then
-            VERSION=$(npm view @rarsus/necrobot-core version)
-            echo "✅ Published @rarsus/necrobot-core@$VERSION"
-          else
-            echo "⚠️ Package not yet available in registry"
-          fi
+    uses: ./.github/workflows/reusable-publish-package.yml
+    with:
+      package-name: necrobot-core
+      workspace-path: repos/necrobot-core
+      scope: '@rarsus'
+    secrets:
+      PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
 
   # STEP 3: Publish necrobot-commands (depends on necrobot-core & necrobot-utils)
   publish-commands:
     name: 📦 Publish necrobot-commands
     needs: publish-core
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
-    
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@rarsus'
-
-      - name: 📚 Install dependencies
-        run: cd repos/necrobot-commands && npm ci
-
-      - name: 📤 Publish to GitHub Packages
-        run: cd repos/necrobot-commands && npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
-
-      - name: ✅ Verify publication
-        run: |
-          sleep 2
-          if npm view @rarsus/necrobot-commands@"$(jq -r '.version' repos/necrobot-commands/package.json)" >/dev/null 2>&1; then
-            VERSION=$(npm view @rarsus/necrobot-commands version)
-            echo "✅ Published @rarsus/necrobot-commands@$VERSION"
-          else
-            echo "⚠️ Package not yet available in registry"
-          fi
+    uses: ./.github/workflows/reusable-publish-package.yml
+    with:
+      package-name: necrobot-commands
+      workspace-path: repos/necrobot-commands
+      scope: '@rarsus'
+    secrets:
+      PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
 
   # STEP 4: Publish necrobot-dashboard (depends on necrobot-utils only)
   # NOTE: This can run in parallel with core/commands since it only depends on utils (already published)
-  # However, semantic versioning coordination still requires it after commands for clarity
   publish-dashboard:
     name: 📦 Publish necrobot-dashboard
-    needs: publish-utils  # Only needs utils, could run in parallel with core+commands
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
-    
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@rarsus'
-
-      - name: 📚 Install dependencies
-        run: cd repos/necrobot-dashboard && npm ci
-
-      - name: 📤 Publish to GitHub Packages
-        run: cd repos/necrobot-dashboard && npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
-
-      - name: ✅ Verify publication
-        run: |
-          sleep 2
-          if npm view @rarsus/necrobot-dashboard@"$(jq -r '.version' repos/necrobot-dashboard/package.json)" >/dev/null 2>&1; then
-            VERSION=$(npm view @rarsus/necrobot-dashboard version)
-            echo "✅ Published @rarsus/necrobot-dashboard@$VERSION"
-          else
-            echo "⚠️ Package not yet available in registry"
-          fi
+    needs: publish-utils
+    uses: ./.github/workflows/reusable-publish-package.yml
+    with:
+      package-name: necrobot-dashboard
+      workspace-path: repos/necrobot-dashboard
+      scope: '@rarsus'
+    secrets:
+      PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
 
   # ============================================================================
   # PARALLEL: Build Docker images independently (bot & dashboard parallel)
