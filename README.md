@@ -275,7 +275,7 @@ This project is licensed under the MIT License. See [LICENSE](./LICENSE) for det
 
 ---
 
-**Last Updated:** January 29, 2026  
-**Current Version:** v0.5.1  
+**Last Updated:** January 31, 2026  
+**Current Version:** v1.0.0 - Official Public Release 🚀  
 **Node.js Requirement:** >= 22.0.0  
 **npm Requirement:** >= 10.0.0

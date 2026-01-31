@@ -71,7 +71,7 @@ EXPOSE 3000
 # Labels for metadata
 LABEL maintainer="Rarsus"
 LABEL description="NecromundaBot - Advanced Discord bot for Necromunda campaign management"
-LABEL version="1.8.0"
+LABEL version="1.0.0"
 
 # Stage 3: Dashboard runtime
 FROM node:22-alpine AS dashboard
@@ -110,4 +110,4 @@ CMD ["npm", "run", "start", "--workspace=repos/necrobot-dashboard"]
 # Labels for metadata
 LABEL maintainer="Rarsus"
 LABEL description="NecromundaBot Dashboard - Web UI for Necromunda campaign management"
-LABEL version="1.8.0"
+LABEL version="1.0.0"
