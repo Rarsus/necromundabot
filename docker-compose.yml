@@ -56,10 +56,11 @@ services:
 
   # Web Dashboard Service (Next.js)
   necrobot-dashboard:
-    # Build from Dockerfile.dashboard
+    # Build from Dockerfile (multi-target: dashboard)
     build:
       context: .
-      dockerfile: Dockerfile.dashboard
+      dockerfile: Dockerfile
+      target: dashboard
       args:
         BUILDKIT_INLINE_CACHE: "1"
     

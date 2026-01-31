@@ -374,7 +374,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile.dashboard
+          file: Dockerfile
+          target: dashboard
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -402,7 +403,7 @@ jobs:
           echo "- Image: ghcr.io/${{ github.repository }}-dashboard" >> $GITHUB_STEP_SUMMARY
           echo "- Version: v${{ steps.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- Tags: ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Dockerfile: Dockerfile.dashboard" >> $GITHUB_STEP_SUMMARY
+          echo "- Dockerfile: Dockerfile (--target dashboard)" >> $GITHUB_STEP_SUMMARY
           echo "- Registry: GitHub Container Registry (GHCR)" >> $GITHUB_STEP_SUMMARY
           echo "- Status: ✅ Successfully built and pushed" >> $GITHUB_STEP_SUMMARY
 

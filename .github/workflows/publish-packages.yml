@@ -190,14 +190,13 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile.dashboard
+          file: Dockerfile
+          target: dashboard
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: |
-            NODE_VERSION=22
 
       - name: 📝 Dashboard Docker build summary
         run: |
