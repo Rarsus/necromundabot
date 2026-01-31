@@ -104,29 +104,52 @@ function main() {
       workspaces.map((w) => w.replace('repos/', ''))
     );
 
-    if (wsResults.failed.length === 0) {
-      console.log('✅ All workspace versions updated successfully\n');
+    // Separate successful and failed updates
+    const wsUpdated = [];
+    const wsFailed = [];
+
+    for (const [workspace, result] of Object.entries(wsResults)) {
+      if (result.error) {
+        wsFailed.push({ workspace, reason: result.error });
+      } else {
+        wsUpdated.push({
+          workspace,
+          oldVersion: result.oldVersion,
+          newVersion: result.newVersion,
+          bumpType: result.bumpType,
+        });
+      }
+    }
+
+    if (wsFailed.length === 0) {
+      if (wsUpdated.length > 0) {
+        console.log('✅ All workspace versions updated successfully\n');
+        wsUpdated.forEach((w) => {
+          console.log(`   • ${w.workspace}: ${w.oldVersion} → ${w.newVersion} (${w.bumpType})`);
+        });
+        console.log('');
+      }
 
       // Step 6: Update root version
       console.log('🔗 Updating root version...');
       const rootResults = updateRootVersion(changes);
 
-      if (rootResults.success) {
+      if (rootResults.bumped) {
         console.log(`✅ Root version updated: ${rootResults.oldVersion} → ${rootResults.newVersion}\n`);
       } else {
-        console.warn(`⚠️  Root version update failed: ${rootResults.reason}\n`);
+        console.log(`ℹ️  Root version unchanged: ${rootResults.oldVersion}\n`);
       }
 
       // Summary
       console.log('📊 Summary:');
-      console.log(`   Workspace updates: ${wsResults.updated.length} successful, ${wsResults.failed.length} failed`);
+      console.log(`   Workspace updates: ${wsUpdated.length} successful, ${wsFailed.length} failed`);
       console.log(`   Root version: ${rootResults.oldVersion} → ${rootResults.newVersion}`);
       console.log(`   Timestamp: ${rootResults.timestamp}\n`);
       console.log('✅ Version synchronization complete!\n');
       process.exit(0);
     } else {
-      console.error(`❌ ${wsResults.failed.length} workspace updates failed`);
-      wsResults.failed.forEach((f) => {
+      console.error(`❌ ${wsFailed.length} workspace updates failed`);
+      wsFailed.forEach((f) => {
         console.error(`   • ${f.workspace}: ${f.reason}`);
       });
       process.exit(1);
