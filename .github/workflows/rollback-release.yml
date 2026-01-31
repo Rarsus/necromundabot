@@ -56,9 +56,7 @@ jobs:
     name: 🔄 Execute Rollback
     runs-on: ubuntu-latest
     needs: validate-rollback
-    environment:
-      name: production-rollback
-      required: true
+    environment: production-rollback
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
