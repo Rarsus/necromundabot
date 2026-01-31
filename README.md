@@ -75,11 +75,12 @@ docker logs necromundabot -f
 
 ## 📚 Documentation
 
+- **[Quick Start Guide](./docs/guides/MONOREPO.md)** - Getting started with the monorepo
 - **[User Guides](./docs/user-guides/)** - How to use the bot and features
-- **[Developer Guides](./docs/guides/)** - Development workflows and patterns
-- **[Architecture](./docs/architecture/)** - System design and components
-- **[Testing](./docs/testing/)** - Test strategies and coverage
-- **[Project Documentation](./project-docs/)** - Phase deliverables and planning
+- **[Developer Guides](./docs/guides/)** - Development workflows, Docker, and patterns
+- **[Architecture](./docs/architecture/)** - System design, guild-awareness, and submodules
+- **[Testing Guides](./docs/testing/)** - Test strategies, coverage, and TDD patterns
+- **[Project Documentation](./project-docs/)** - Phase deliverables, infrastructure, and planning
 
 ## 📋 Key Documentation Files
 

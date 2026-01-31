@@ -12,10 +12,10 @@
 This document describes the step-by-step process to convert NecromundaBot from a git submodule architecture to a single unified repository while:
 
 ✅ Preserving all git history for all 4 packages  
-✅ Maintaining directory structure (repos/necrobot-*)  
+✅ Maintaining directory structure (repos/necrobot-\*)  
 ✅ Keeping npm workspace structure functional  
 ✅ Updating all CI/CD pipelines  
-✅ Zero breaking changes to published packages (version numbers preserved)  
+✅ Zero breaking changes to published packages (version numbers preserved)
 
 **Total Effort:** 40-60 hours  
 **Risk Level:** 🟡 HIGH (requires careful git operations)  
@@ -60,6 +60,7 @@ cd ../../
 Create file: `project-docs/MONOREPO-MIGRATION-CURRENT-STATE.md`
 
 Contents:
+
 - Submodule URLs and branches
 - Current npm workspace configuration
 - Current package versions
@@ -152,18 +153,15 @@ git remote remove necrobot-utils
 #### 2.1d: Update package.json dependencies
 
 In root `package.json`, necrobot-utils is now a local directory:
+
 ```json
 {
-  "workspaces": [
-    "repos/necrobot-utils",
-    "repos/necrobot-core",
-    "repos/necrobot-commands",
-    "repos/necrobot-dashboard"
-  ]
+  "workspaces": ["repos/necrobot-utils", "repos/necrobot-core", "repos/necrobot-commands", "repos/necrobot-dashboard"]
 }
 ```
 
 Update `repos/necrobot-core/package.json`:
+
 ```json
 {
   "dependencies": {
@@ -199,7 +197,8 @@ git remote remove necrobot-core
 ```
 
 Update package.json files:
-- `repos/necrobot-commands/package.json`: Change "necrobot-core": "*" → "necrobot-core": "workspace:*"
+
+- `repos/necrobot-commands/package.json`: Change "necrobot-core": "_" → "necrobot-core": "workspace:_"
 
 ### Step 2.3: Migrate necrobot-commands (4 hours)
 
@@ -265,14 +264,10 @@ git commit -m "chore(migration): Remove .gitmodules after submodule consolidatio
 ### Step 3.1: Verify npm Workspaces
 
 Root `package.json` should have:
+
 ```json
 {
-  "workspaces": [
-    "repos/necrobot-utils",
-    "repos/necrobot-core",
-    "repos/necrobot-commands",
-    "repos/necrobot-dashboard"
-  ]
+  "workspaces": ["repos/necrobot-utils", "repos/necrobot-core", "repos/necrobot-commands", "repos/necrobot-dashboard"]
 }
 ```
 
@@ -281,6 +276,7 @@ Root `package.json` should have:
 All cross-workspace dependencies should use `workspace:*` protocol:
 
 **repos/necrobot-core/package.json:**
+
 ```json
 {
   "dependencies": {
@@ -290,6 +286,7 @@ All cross-workspace dependencies should use `workspace:*` protocol:
 ```
 
 **repos/necrobot-commands/package.json:**
+
 ```json
 {
   "dependencies": {
@@ -300,6 +297,7 @@ All cross-workspace dependencies should use `workspace:*` protocol:
 ```
 
 **repos/necrobot-dashboard/package.json:**
+
 ```json
 {
   "dependencies": {
@@ -322,6 +320,7 @@ npm list @rarsus/necrobot-*
 ### Step 3.4: Update Import Paths (if needed)
 
 All imports should remain the same:
+
 ```javascript
 const { DatabaseService } = require('necrobot-utils');
 const CommandLoader = require('necrobot-core');
@@ -347,6 +346,7 @@ git commit -m "chore(migration): Update workspace configuration after monorepo c
 ### Step 4.1: Update testing.yml
 
 Key changes:
+
 - No more submodule initialization (remove `submodules: recursive`)
 - All workspace tests in single matrix
 - Single publish job instead of per-package
@@ -355,6 +355,7 @@ Key changes:
 **File:** `.github/workflows/testing.yml`
 
 Changes:
+
 ```yaml
 - name: Checkout code
   uses: actions/checkout@v4
@@ -382,6 +383,7 @@ Remove submodule steps, ensure all workspaces scanned.
 ### Step 4.4: Update publish-packages.yml
 
 Major changes:
+
 - Single checkout (no submodule recursion)
 - Per-workspace publishing with proper dependency order
 - Updated version detection logic
@@ -406,7 +408,7 @@ jobs:
     strategy:
       matrix:
         package: [utils, core, commands, dashboard]
-        
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -414,7 +416,7 @@ jobs:
           node-version: 22
           registry-url: https://npm.pkg.github.com
           scope: '@rarsus'
-          
+
       - run: npm ci --workspaces
       - run: npm test --workspace=repos/necrobot-${{ matrix.package }}
       - run: npm publish --workspace=repos/necrobot-${{ matrix.package }}
@@ -437,21 +439,21 @@ Update root `package.json` scripts section:
     "test:integration": "npm test --workspaces",
     "test:watch": "npm run test:watch --workspaces",
     "test:coverage": "npm run test:coverage --workspaces",
-    
+
     "lint": "npm run lint --workspaces",
     "lint:fix": "npm run lint:fix --workspaces",
-    
+
     "format": "npm run format --workspaces",
     "format:check": "npm run format:check --workspaces",
-    
+
     "build": "npm run build --workspaces",
-    
+
     "validate:node": "node scripts/validate-node-version.js",
     "validate:workspaces": "node scripts/validate-workspaces.js",
-    
+
     "workspaces:list": "npm list --workspaces --depth=0",
     "workspaces:status": "node scripts/workspaces-status.js",
-    
+
     "prepare": "husky install"
   }
 }
@@ -474,6 +476,7 @@ Creates script to verify all workspaces are healthy (tests pass, linting passes,
 New file: `docs/guides/MONOREPO.md`
 
 Contents:
+
 - Architecture overview (monorepo structure)
 - How workspaces work
 - Local development setup
@@ -484,6 +487,7 @@ Contents:
 ### Step 6.2: Update CONTRIBUTING.md
 
 Add sections:
+
 - Monorepo development workflow
 - Running tests for specific workspace
 - Commit conventions (per-workspace prefix)
@@ -492,6 +496,7 @@ Add sections:
 ### Step 6.3: Update README.md
 
 Add section:
+
 - Directory structure explanation
 - Repository status (now unified)
 - Development setup (simplified)
@@ -500,6 +505,7 @@ Add section:
 ### Step 6.4: Create MONOREPO-FAQ.md
 
 Common questions and answers:
+
 - "Where is the X package code?" → "In repos/necrobot-X/"
 - "How do I run tests for one package?" → "npm test --workspace=repos/necrobot-X"
 - "What about separate versioning?" → "Each package.json maintains own version"
@@ -565,6 +571,7 @@ docker-compose down
 ### Step 7.4: Verify Workflows
 
 Commit to migration branch and verify GitHub Actions:
+
 - testing.yml should pass
 - pr-checks.yml should pass
 - security.yml should pass
@@ -579,6 +586,7 @@ Commit to migration branch and verify GitHub Actions:
 Create file: `project-docs/MONOREPO-MIGRATION-SUMMARY.md`
 
 Contents:
+
 - Migration completion date
 - Before/after statistics
 - Breaking changes (none)
@@ -654,17 +662,17 @@ git submodule update --init --recursive
 
 ## Effort Breakdown
 
-| Phase | Task | Hours | Status |
-|-------|------|-------|--------|
-| 1 | Preparation & Backup | 4 | Not Started |
-| 2 | Git Submodule Conversion | 12 | Not Started |
-| 3 | Configuration Updates | 8 | Not Started |
-| 4 | GitHub Actions Updates | 16 | Not Started |
-| 5 | Utility Scripts | 6 | Not Started |
-| 6 | Documentation | 8 | Not Started |
-| 7 | Testing & Verification | 6 | Not Started |
-| 8 | Final Steps | 2 | Not Started |
-| **TOTAL** | | **62** | |
+| Phase     | Task                     | Hours  | Status      |
+| --------- | ------------------------ | ------ | ----------- |
+| 1         | Preparation & Backup     | 4      | Not Started |
+| 2         | Git Submodule Conversion | 12     | Not Started |
+| 3         | Configuration Updates    | 8      | Not Started |
+| 4         | GitHub Actions Updates   | 16     | Not Started |
+| 5         | Utility Scripts          | 6      | Not Started |
+| 6         | Documentation            | 8      | Not Started |
+| 7         | Testing & Verification   | 6      | Not Started |
+| 8         | Final Steps              | 2      | Not Started |
+| **TOTAL** |                          | **62** |             |
 
 ---
 
@@ -679,4 +687,3 @@ git submodule update --init --recursive
 - ✅ Zero breaking changes
 - ✅ Complete documentation
 - ✅ Merged to main and tested in clean environment
-
