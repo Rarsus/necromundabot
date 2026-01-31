@@ -1,0 +1,67 @@
+# NecromundaBot Dashboard - Multi-stage Dockerfile
+# This Dockerfile prepares the React/Next.js dashboard for running
+
+# Stage 1: Dependencies
+FROM node:22-alpine AS dependencies
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Copy workspace packages (dashboard and its dependency: utils)
+COPY repos/necrobot-dashboard ./repos/necrobot-dashboard
+COPY repos/necrobot-utils ./repos/necrobot-utils
+
+# Install all dependencies
+# Use --ignore-scripts to prevent postinstall hooks from running during build
+RUN npm ci --ignore-scripts
+
+# Stage 2: Production runtime
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+# Create nextjs user for security (run as non-root)
+RUN addgroup -g 1001 -S nextjs && \
+    adduser -S nextjs -u 1001
+
+# Copy package files from dependencies
+COPY --from=dependencies --chown=nextjs:nextjs /app/package.json /app/package.json
+COPY --from=dependencies --chown=nextjs:nextjs /app/package-lock.json /app/package-lock.json
+
+# Copy node_modules from dependencies stage
+COPY --from=dependencies --chown=nextjs:nextjs /app/node_modules ./node_modules
+
+# Copy workspace packages
+COPY --from=dependencies --chown=nextjs:nextjs /app/repos/necrobot-dashboard ./repos/necrobot-dashboard
+COPY --from=dependencies --chown=nextjs:nextjs /app/repos/necrobot-utils ./repos/necrobot-utils
+
+# Create logs directory
+RUN mkdir -p /app/logs && \
+    chown -R nextjs:nextjs /app/logs
+
+# Switch to non-root user
+USER nextjs
+
+# Simple health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "console.log('Dashboard container running')" || exit 1
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start in dev mode for now (dashboard is a component library, not a full app)
+WORKDIR /app/repos/necrobot-dashboard
+CMD ["npm", "run", "dev"]
+
+# Expose port for dashboard access
+EXPOSE 3000
+
+# Labels for metadata
+LABEL maintainer="Rarsus"
+LABEL description="NecromundaBot Dashboard - Web UI for campaign and gang management"
+LABEL version="1.4.0"

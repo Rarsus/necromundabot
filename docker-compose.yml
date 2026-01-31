@@ -1,4 +1,5 @@
 services:
+  # Discord Bot Service
   necromundabot:
     # Build from Dockerfile in the current directory
     build:
@@ -48,6 +49,77 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    
+    # Network configuration
+    networks:
+      - necromundabot-network
+
+  # Web Dashboard Service (Next.js)
+  necrobot-dashboard:
+    # Build from Dockerfile.dashboard
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+      args:
+        BUILDKIT_INLINE_CACHE: "1"
+    
+    # Container name
+    container_name: necrobot-dashboard
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Environment configuration
+    env_file:
+      - .env
+    
+    # Dashboard-specific environment variables
+    environment:
+      # Next.js port
+      PORT: 3000
+      # Node environment - use development mode since dashboard is still being built
+      NODE_ENV: development
+      # Optional: API endpoint for dashboard to communicate with bot (if API exists)
+      # NEXT_PUBLIC_API_URL: http://necromundabot:3001/api
+      # Optional: Public bot information for dashboard
+      # NEXT_PUBLIC_BOT_NAME: "NecromundaBot"
+      # NEXT_PUBLIC_DISCORD_INVITE: "https://discord.gg/your-invite"
+    
+    # Volume mounts
+    volumes:
+      # Read-only access to shared data volume
+      - necromundabot_data:/app/data:ro
+      # Mount .env file
+      - ./.env:/app/.env:ro
+    
+    # Port mapping - expose dashboard to host
+    ports:
+      - "3000:3000"
+    
+    # Resource limits (dashboard uses less than bot)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    
+    # Network configuration
+    networks:
+      - necromundabot-network
+    
+    # Wait for bot to start first (optional dependency)
+    depends_on:
+      - necromundabot
 
 # Named volume for database persistence
 volumes:
@@ -61,7 +133,7 @@ volumes:
     #   o: bind
     #   device: ./data
 
-# Network (optional, can be used for future services like dashboard)
+# Network for inter-container communication
 networks:
-  default:
-    name: necromundabot-network
+  necromundabot-network:
+    driver: bridge

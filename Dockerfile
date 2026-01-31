@@ -7,9 +7,6 @@ FROM node:22-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy .npmrc for faster builds and deprecation suppression
-COPY .npmrc ./
-
 # Install build dependencies
 RUN apk add --no-cache python3 make g++
 
