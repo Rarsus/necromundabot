@@ -27,12 +27,12 @@ GitHub Actions workflows, deployment, Docker, and system configuration managemen
 
 **Key Documents:**
 
-- [GIT-SUBMODULE-CHECKOUT-FIX.md](./infrastructure/GIT-SUBMODULE-CHECKOUT-FIX.md) - Git submodule URL configuration
-- [GITHUB-ACTIONS-PUBLISHING-ASSESSMENT.md](./infrastructure/GITHUB-ACTIONS-PUBLISHING-ASSESSMENT.md) - Publishing workflow assessment
-- [DOCKER-FIXES-SUMMARY.md](./infrastructure/DOCKER-FIXES-SUMMARY.md) - Docker build improvements
 - [SECURITY-WORKFLOW-FIX-SUMMARY.md](./infrastructure/SECURITY-WORKFLOW-FIX-SUMMARY.md) - Security scanning fixes
-- [WORKFLOW-SUBMODULES-FIX.md](./infrastructure/WORKFLOW-SUBMODULES-FIX.md) - GitHub Actions fixes
-- [VULNERABILITY-ACCEPTANCE-AUTOMATION-COMPLETE.md](./infrastructure/VULNERABILITY-ACCEPTANCE-AUTOMATION-COMPLETE.md) - Vulnerability management
+- [SUBMODULE-FIX-DEPLOYMENT-STATUS.md](./SUBMODULE-FIX-DEPLOYMENT-STATUS.md) - Git submodule URL configuration
+- [DOCKER-FIXES-SUMMARY.md](./DOCKER-FIXES-SUMMARY.md) - Docker build improvements
+- [VULNERABILITY-ACCEPTANCE-AUTOMATION-COMPLETE.md](./VULNERABILITY-ACCEPTANCE-AUTOMATION-COMPLETE.md) - Vulnerability management
+
+**Note:** Older infrastructure assessment documents are archived in [archive/](./archive/)
 
 ### [Testing & Code Coverage](./testing/)
 
@@ -50,12 +50,11 @@ Phase planning, milestones, action items, and team communication.
 
 **Key Documents:**
 
-- [PHASE-03-ACTION-ITEMS-SUMMARY.md](./planning/PHASE-03-ACTION-ITEMS-SUMMARY.md) - Current action items
-- [PHASE-03-DOCUMENTATION-INDEX.md](./planning/PHASE-03-DOCUMENTATION-INDEX.md) - Phase documentation index
-- [START-PHASE-03-NOW.md](./planning/START-PHASE-03-NOW.md) - Phase initiation guide
-- [MONOREPO-MIGRATION-PLAN-A.md](./planning/MONOREPO-MIGRATION-PLAN-A.md) - Monorepo migration plan
-- [TEAM-ANNOUNCEMENT-PHASE-03.2.md](./planning/TEAM-ANNOUNCEMENT-PHASE-03.2.md) - Team announcements
-- [SYNC-STATUS-REPORT.md](./planning/SYNC-STATUS-REPORT.md) - Synchronization status
+- [PHASE-03-ACTION-ITEMS-SUMMARY.md](./PHASE-03-ACTION-ITEMS-SUMMARY.md) - Current action items
+- [TEAM-ANNOUNCEMENT-PHASE-03.2.md](./TEAM-ANNOUNCEMENT-PHASE-03.2.md) - Team announcements
+- [SYNC-STATUS-REPORT.md](./SYNC-STATUS-REPORT.md) - Synchronization status
+
+**Note:** Older planning documents from Phases 01-03 are archived in [archive/](./archive/)
 
 ### [Governance](./governance/)
 
