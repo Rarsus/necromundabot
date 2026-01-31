@@ -27,7 +27,7 @@ jobs:
       contents: read
       pull-requests: write
     with:
-      check-markdown: true
-      check-links: true
-      check-naming: true
+      validate-markdown: true
+      validate-links: true
+      validate-naming: true
 
