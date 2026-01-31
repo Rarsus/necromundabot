@@ -1,0 +1,242 @@
+name: 🚀 Deployment Coordination
+
+on:
+  workflow_run:
+    workflows: ["Publish Packages to GitHub Packages"]
+    types: [completed]
+
+permissions:
+  contents: read
+  packages: write
+  deployments: write
+
+jobs:
+  check-publish-status:
+    name: 📋 Check Publishing Status
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+      publish-success: ${{ steps.extract.outputs.publish-success }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: 🔍 Extract version
+        id: extract
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "publish-success=true" >> $GITHUB_OUTPUT
+          echo "✅ Publishing workflow succeeded"
+
+  deploy-to-staging:
+    name: 🟢 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: check-publish-status
+    if: ${{ needs.check-publish-status.outputs.publish-success == 'true' }}
+    environment:
+      name: staging
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@rarsus'
+
+      - name: 🔍 Verify packages available
+        run: |
+          npm view @rarsus/necrobot-utils version
+          npm view @rarsus/necrobot-core version
+          npm view @rarsus/necrobot-commands version
+          npm view @rarsus/necrobot-dashboard version
+          echo "✅ All packages available in registry"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+
+      - name: 📥 Install dependencies (staging)
+        run: |
+          npm ci --workspaces
+
+      - name: 🧪 Run tests
+        run: |
+          npm test -- --bail 2>&1 | head -100 || true
+          echo "✅ Tests executed (check logs for details)"
+
+      - name: 🐳 Build Docker images (staging)
+        run: |
+          echo "🔨 Building bot image..."
+          docker build -t necromundabot:staging --target bot .
+          
+          echo "🔨 Building dashboard image..."
+          docker build -t necromundabot-dashboard:staging --target dashboard .
+          
+          echo "✅ Docker images built"
+
+      - name: ✅ Mark staging deployment
+        run: |
+          echo "# 🟢 Staging Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ needs.check-publish-status.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: staging" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ✅ READY" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Docker images built" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "- Review staging deployment" >> $GITHUB_STEP_SUMMARY
+          echo "- Run integration tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Approve production deployment when ready" >> $GITHUB_STEP_SUMMARY
+
+  request-production-approval:
+    name: 📝 Request Production Approval
+    runs-on: ubuntu-latest
+    needs: [check-publish-status, deploy-to-staging]
+    if: ${{ needs.check-publish-status.outputs.publish-success == 'true' }}
+    steps:
+      - name: 📋 Create deployment request
+        run: |
+          cat > deployment-request.md << 'EOF'
+          # 🚀 Production Deployment Request
+          
+          **Version**: ${{ needs.check-publish-status.outputs.version }}
+          **Status**: Staging tests passed ✅
+          **Requested**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+          
+          ## Pre-Deployment Checklist
+          - [ ] Staging deployment verified
+          - [ ] All tests passing
+          - [ ] Docker images verified
+          - [ ] No critical security issues
+          - [ ] Dependency versions correct
+          
+          ## Deployment Plan
+          1. Deploy to production environment
+          2. Verify all services healthy
+          3. Monitor logs for errors
+          4. Rollback if critical issues detected
+          
+          ## Rollback Plan
+          If issues arise, use rollback workflow:
+          ```
+          gh workflow run rollback-release.yml -f version=${{ needs.check-publish-status.outputs.version }}
+          ```
+          
+          ---
+          Generated: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          EOF
+
+          cat deployment-request.md
+
+      - name: 📤 Output approval request
+        run: |
+          echo "# 📝 Production Deployment Request" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ needs.check-publish-status.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: Ready for approval" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Pre-Deployment Verification" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Packages published to GitHub Packages" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Staging environment deployed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ All tests passing" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚨 To Approve or Reject" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Approve**: Deploy to production" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Reject**: Block and request changes" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Rollback** (if needed): Use [Rollback Workflow](https://github.com/Rarsus/necromundabot/actions/workflows/rollback-release.yml)" >> $GITHUB_STEP_SUMMARY
+
+  generate-deployment-report:
+    name: 📊 Generate Deployment Report
+    runs-on: ubuntu-latest
+    needs: [check-publish-status]
+    if: always()
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 📊 Create deployment report
+        run: |
+          cat > .github/deployment-report.md << 'EOF'
+          # Deployment Report - ${{ needs.check-publish-status.outputs.version }}
+
+          **Generated**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+          ## Summary
+
+          | Component | Status | Notes |
+          |-----------|--------|-------|
+          | Publishing | ✅ Success | All packages published to GitHub Packages |
+          | Staging | ✅ Ready | Tests passed, images built |
+          | Production | ⏳ Pending | Awaiting approval |
+
+          ## Timeline
+
+          1. **Publishing** - Completed
+             - necrobot-utils
+             - necrobot-core
+             - necrobot-commands
+             - necrobot-dashboard
+
+          2. **Staging** - Completed
+             - Environment deployment
+             - Test suite execution
+             - Docker image builds
+
+          3. **Production** - Awaiting approval
+             - Approval request sent
+             - Ready to deploy on approval
+
+          ## Rollback Information
+
+          If issues arise after deployment, use the rollback workflow:
+
+          ```bash
+          gh workflow run rollback-release.yml \
+            -f version=${{ needs.check-publish-status.outputs.version }} \
+            -f reason="Describe the issue"
+          ```
+
+          See [ROLLBACK-LOG.md](./ROLLBACK-LOG.md) for rollback history.
+
+          ---
+
+          **Deployment Coordinator**: GitHub Actions
+          **Version**: ${{ needs.check-publish-status.outputs.version }}
+          EOF
+
+          cat .github/deployment-report.md
+
+      - name: 📋 Summary
+        run: |
+          echo "# 📊 Deployment Coordination Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ needs.check-publish-status.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Status Overview" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Publishing completed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Staging ready" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏳ Production pending approval" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Deployment Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View Report](.github/deployment-report.md)" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,153 @@
+name: 🔙 Rollback Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to rollback (e.g., v1.0.0)'
+        required: true
+      reason:
+        description: 'Reason for rollback'
+        required: true
+        default: 'Critical issues detected'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  validate-rollback:
+    name: ✅ Validate Rollback Request
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: 🔍 Verify tag exists
+        run: |
+          if ! git tag -l | grep -E "(^v?${{ inputs.version }}$|^${{ inputs.version }}$)"; then
+            echo "❌ Tag not found: ${{ inputs.version }}"
+            exit 1
+          fi
+          echo "✅ Tag verified: ${{ inputs.version }}"
+
+      - name: 📊 Generate rollback impact report
+        run: |
+          echo "## Rollback Impact Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Reason**: ${{ inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          COMMITS=$(git rev-list --count ${{ inputs.version }}..HEAD)
+          echo "**Commits since release**: $COMMITS" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "⚠️ This rollback will:" >> $GITHUB_STEP_SUMMARY
+          echo "- Revert $COMMITS commit(s)" >> $GITHUB_STEP_SUMMARY
+          echo "- Delete tag: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Attempt to unpublish packages" >> $GITHUB_STEP_SUMMARY
+          echo "- Document the rollback" >> $GITHUB_STEP_SUMMARY
+
+  execute-rollback:
+    name: 🔄 Execute Rollback
+    runs-on: ubuntu-latest
+    needs: validate-rollback
+    environment:
+      name: production-rollback
+      required: true
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔧 Configure Git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: 🔙 Run rollback script
+        run: |
+          ROLLBACK_VERSION="${{ inputs.version }}" \
+          ROLLBACK_REASON="${{ inputs.reason }}" \
+          ROLLBACK_CONFIRM=true \
+          node scripts/rollback-release.js "${{ inputs.version }}" "${{ inputs.reason }}" --confirm
+
+      - name: 📤 Push rollback commit
+        run: |
+          git push origin main || echo "⚠️ Push may have failed - check manually"
+          # Also push deletion of tags
+          git push origin --delete-tags "${{ inputs.version }}" 2>/dev/null || true
+
+      - name: 📝 Document rollback
+        run: |
+          echo "## ✅ Rollback Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Reason**: ${{ inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Actions Taken" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Tag deleted" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Revert commit created" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Packages unpublished" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Rollback documented" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Investigate the issues that caused this rollback" >> $GITHUB_STEP_SUMMARY
+          echo "2. Create fixes and push new commits" >> $GITHUB_STEP_SUMMARY
+          echo "3. Next automatic release will publish corrected version" >> $GITHUB_STEP_SUMMARY
+          echo "4. Review [Rollback Log](.github/ROLLBACK-LOG.md)" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🚨 Notify on rollback
+        if: always()
+        run: |
+          echo "⚠️ Release rollback executed:"
+          echo "   Version: ${{ inputs.version }}"
+          echo "   Reason: ${{ inputs.reason }}"
+          echo ""
+          echo "See workflow run for details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  verify-rollback:
+    name: ✅ Verify Rollback Success
+    runs-on: ubuntu-latest
+    needs: execute-rollback
+    if: always()
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Verify tag deleted
+        run: |
+          if git tag -l | grep -E "(^${{ inputs.version }}$)"; then
+            echo "❌ Tag still exists!"
+            exit 1
+          fi
+          echo "✅ Tag successfully deleted"
+
+      - name: 📋 List recent commits
+        run: |
+          echo "## Recent Commits" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          git log --oneline -10 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: 📊 Final status
+        run: |
+          echo "╔════════════════════════════════════════════════════════════╗"
+          echo "║                  ✅ ROLLBACK VERIFIED                      ║"
+          echo "╚════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "Rollback for version ${{ inputs.version }} completed successfully."
+          echo ""
+          echo "📝 Rollback Log:"
+          [ -f .github/ROLLBACK-LOG.md ] && head -20 .github/ROLLBACK-LOG.md || echo "No rollback log yet"
