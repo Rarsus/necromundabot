@@ -2,7 +2,7 @@
 # This Dockerfile builds and runs the NecromundaBot Discord bot with npm workspaces
 
 # Stage 1: Build stage
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -26,7 +26,7 @@ COPY repos/necrobot-commands ./repos/necrobot-commands
 RUN HUSKY=0 npm ci --ignore-scripts --omit=dev --workspaces
 
 # Stage 2: Runtime stage
-FROM node:22-alpine
+FROM node:25-alpine
 
 # Set working directory
 WORKDIR /app
