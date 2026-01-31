@@ -129,6 +129,11 @@ function detectWorkspaceChanges(diffOutput, commits) {
   const files = parseCommitDiff(diffOutput);
   const workspaceFileMap = mapFilesToWorkspaces(files);
 
+  // Safeguard: ensure commits is an array
+  if (!commits || !Array.isArray(commits)) {
+    commits = [];
+  }
+
   // In a real scenario, we'd match commits to files using git log --name-only
   // For now, we correlate based on file patterns and assume commits touch those files
   // Strategy: Parse commits in order and map to workspaces based on file patterns
