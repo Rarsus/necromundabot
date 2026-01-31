@@ -1,38 +1,37 @@
 #!/usr/bin/env node
 
 /**
- * Analyze Version Impact
- * 
- * This script analyzes git commits since the last release tag and determines
- * the appropriate SemVer version bump based on conventional commits and code changes.
- * 
+ * Analyze Version Impact (Workspace-Independent)
+ *
+ * This script analyzes git commits and determines workspace-independent version bumps.
+ * Each workspace versions based on its own changes, maintaining dependencies:
+ *   - necrobot-utils (no dependencies)
+ *   - necrobot-core (depends on necrobot-utils)
+ *   - necrobot-commands (depends on necrobot-core and necrobot-utils)
+ *   - necrobot-dashboard (depends on necrobot-utils)
+ *
  * Usage: node scripts/analyze-version-impact.js [lastTag]
  * Example: node scripts/analyze-version-impact.js v0.2.1
+ *
+ * REPLACED: Old monorepo versioning logic is now replaced with workspace-independent system.
  */
 
 const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const detectWorkspaceChangesModule = require('./detect-workspace-changes');
+const { detectWorkspaceChanges } = detectWorkspaceChangesModule;
 
 class VersionImpactAnalyzer {
   constructor(lastTag) {
     this.lastTag = lastTag;
     this.commits = [];
-    this.changes = {
-      feat: [],
-      fix: [],
-      breaking: [],
-      docs: [],
-      refactor: [],
-      chore: [],
-      test: [],
-      other: [],
-    };
-    this.fileStats = {
-      src: { added: 0, deleted: 0, modified: 0 },
-      tests: { added: 0, deleted: 0, modified: 0 },
-      docs: { added: 0, deleted: 0, modified: 0 },
-      other: { added: 0, deleted: 0, modified: 0 },
+    this.workspaceChanges = {};
+    this.dependencies = {
+      'necrobot-utils': [],
+      'necrobot-core': ['necrobot-utils'],
+      'necrobot-commands': ['necrobot-core', 'necrobot-utils'],
+      'necrobot-dashboard': ['necrobot-utils'],
     };
   }
 
@@ -54,12 +53,13 @@ class VersionImpactAnalyzer {
   getCommits() {
     const range = this.lastTag ? `${this.lastTag}..HEAD` : 'HEAD';
     const output = this.execGit(`git log ${range} --pretty=format:"%H|%s|%b"`);
-    
+
     if (!output) return [];
 
-    return output.split('\n')
-      .filter(line => line.trim())
-      .map(line => {
+    return output
+      .split('\n')
+      .filter((line) => line.trim())
+      .map((line) => {
         const parts = line.split('|');
         const hash = (parts[0] || '').trim();
         const subject = (parts[1] || '').trim();
@@ -73,7 +73,7 @@ class VersionImpactAnalyzer {
    */
   parseCommit(commit) {
     const match = commit.subject.match(/^(\w+)(\(.+\))?!?:\s(.+)/);
-    
+
     if (!match) {
       return { type: 'other', scope: null, breaking: false, description: commit.subject };
     }
@@ -90,182 +90,156 @@ class VersionImpactAnalyzer {
   }
 
   /**
-   * Categorize commits
+   * Analyze workspace changes using new system
    */
-  categorizeCommits() {
-    this.commits = this.getCommits();
+  analyzeWorkspaceChanges() {
+    // Determine git range to analyze
+    let range;
+    if (!this.lastTag) {
+      // No tag provided, use origin/main..HEAD (local uncommitted)
+      range = 'origin/main..HEAD';
+    } else if (this.lastTag.includes('..')) {
+      // User provided a range directly (e.g., HEAD~3..HEAD)
+      range = this.lastTag;
+    } else {
+      // User provided a tag name (e.g., v0.2.1)
+      range = `${this.lastTag}..HEAD`;
+    }
 
-    this.commits.forEach(commit => {
-      const parsed = this.parseCommit(commit);
+    // Get git diff
+    let diffOutput = this.execGit(`git diff --name-status ${range}`);
 
-      if (parsed.breaking) {
-        this.changes.breaking.push(parsed);
-      } else if (this.changes[parsed.type]) {
-        this.changes[parsed.type].push(parsed);
-      } else {
-        this.changes.other.push(parsed);
+    // If no diff found (probably no commits), return empty
+    if (!diffOutput) {
+      console.log('ℹ️  No changes detected');
+      return {};
+    }
+
+    // Get commit messages in the format expected by detectWorkspaceChanges
+    let logOutput = this.execGit(`git log ${range} --pretty=format:"%H%n%s%n%b%n---END---"`);
+    const commits = [];
+
+    if (logOutput) {
+      const commitBlocks = logOutput.split('---END---').filter((b) => b.trim());
+
+      for (const block of commitBlocks) {
+        const lines = block.trim().split('\n');
+        if (lines.length >= 2) {
+          const hash = lines[0];
+          const subject = lines[1];
+          const body = lines.slice(2).join('\n');
+          commits.push({
+            hash,
+            message: (subject + '\n' + body).trim(),
+          });
+        }
       }
-    });
+    }
+
+    // Use new workspace detection system
+    this.workspaceChanges = detectWorkspaceChanges(diffOutput, commits);
+    return this.workspaceChanges;
   }
 
   /**
-   * Analyze file changes to determine impact
+   * Apply dependency propagation: if a workspace changes, dependents should be aware
    */
-  analyzeFileChanges() {
-    const range = this.lastTag ? `${this.lastTag}..HEAD` : 'HEAD';
-    
-    // Get status of files (Added, Modified, Deleted)
-    const statusOutput = this.execGit(`git diff ${range} --name-status`);
-    const newFiles = statusOutput.split('\n').filter(line => line.startsWith('A\t'));
-    
-    newFiles.forEach(line => {
-      const filepath = line.replace('A\t', '');
-      const category = this.categorizeFile(filepath);
-      this.fileStats[category].added++;
-    });
+  propagateDependencies() {
+    const propagated = {};
 
-    // Also get stat for line changes
-    const diffStat = this.execGit(`git diff ${range} --stat=200`);
-    if (!diffStat) return;
+    Object.assign(propagated, this.workspaceChanges);
 
-    const lines = diffStat.split('\n');
-    
-    lines.forEach(line => {
-      // Skip header line
-      if (line.includes('changed')) return;
-      if (!line.trim()) return;
-
-      const match = line.match(/^(.+?)\s+\|\s+(\d+)\s+([+\-]+)/);
-      if (!match) return;
-
-      const [, filepath, insertions, markers] = match;
-      const additions = (insertions.match(/\+/g) || []).length;
-      const deletions = (markers.match(/-/g) || []).length;
-
-      const category = this.categorizeFile(filepath);
-      const stat = this.fileStats[category];
-
-      // Only count modifications if file already existed (not in our added list)
-      if (!markers.match(/^\++$/) && !markers.match(/^-+$/)) {
-        stat.modified++;
-      } else if (markers.match(/^-+$/)) {
-        stat.deleted++;
+    // If a workspace changed, mark its dependents with at least a patch bump
+    for (const [workspace, bumpType] of Object.entries(this.workspaceChanges)) {
+      if (bumpType !== 'none') {
+        // Find all workspaces that depend on this one
+        for (const [dependent, deps] of Object.entries(this.dependencies)) {
+          if (deps.includes(workspace) && propagated[dependent] === undefined) {
+            // Mark dependent for patch bump (dependency changed)
+            propagated[dependent] = 'patch';
+          }
+        }
       }
-    });
+    }
+
+    return propagated;
   }
 
   /**
-   * Categorize file by path
-   */
-  categorizeFile(filepath) {
-    if (filepath.includes('/src/') || filepath.includes('src/')) return 'src';
-    if (filepath.includes('/tests/') || filepath.includes('test')) return 'tests';
-    if (filepath.includes('/docs/') || filepath.includes('.md')) return 'docs';
-    return 'other';
-  }
-
-  /**
-   * Determine version bump based on analysis
-   */
-  determineVersionBump(currentVersion) {
-    const [major, minor, patch] = currentVersion.split('.').map(Number);
-
-    // Breaking changes → major version bump
-    if (this.changes.breaking.length > 0) {
-      return `${major + 1}.0.0`;
-    }
-
-    // New features (feat commits) or new source files → minor version bump
-    if (this.changes.feat.length > 0 || this.fileStats.src.added > 0) {
-      return `${major}.${minor + 1}.0`;
-    }
-
-    // Bug fixes, refactors, or test additions → patch version bump
-    if (this.changes.fix.length > 0 || 
-        this.changes.refactor.length > 0 ||
-        this.fileStats.tests.added > 0) {
-      return `${major}.${minor}.${patch + 1}`;
-    }
-
-    // Only docs/chore changes → no version bump needed
-    return null;
-  }
-
-  /**
-   * Generate analysis report
+   * Generate workspace-aware analysis report
    */
   generateReport(currentVersion) {
     console.log('\n╔════════════════════════════════════════════════════════════╗');
-    console.log('║           Version Impact Analysis Report                    ║');
+    console.log('║     Workspace-Independent Version Impact Analysis           ║');
     console.log('╚════════════════════════════════════════════════════════════╝\n');
 
-    console.log(`📊 Current Version: ${currentVersion}`);
+    console.log(`📊 Root Version: ${currentVersion}`);
     console.log(`📍 Analyzing from: ${this.lastTag || 'initial commit'}\n`);
 
-    // Commit breakdown
-    console.log('📝 Commit Breakdown:');
-    console.log(`  ⭐ Features (feat):     ${this.changes.feat.length}`);
-    console.log(`  🔧 Fixes (fix):        ${this.changes.fix.length}`);
-    console.log(`  🚨 Breaking Changes:   ${this.changes.breaking.length}`);
-    console.log(`  ♻️  Refactors:         ${this.changes.refactor.length}`);
-    console.log(`  📚 Docs:               ${this.changes.docs.length}`);
-    console.log(`  🧹 Chores:             ${this.changes.chore.length}`);
-    console.log(`  ✅ Tests:              ${this.changes.test.length}`);
-    console.log(`  ❓ Other:              ${this.changes.other.length}\n`);
+    // Analyze changes
+    const changes = this.analyzeWorkspaceChanges();
 
-    // File changes
-    console.log('📂 File Changes:');
-    console.log(`  src/       → Added: ${this.fileStats.src.added}, Deleted: ${this.fileStats.src.deleted}, Modified: ${this.fileStats.src.modified}`);
-    console.log(`  tests/     → Added: ${this.fileStats.tests.added}, Deleted: ${this.fileStats.tests.deleted}, Modified: ${this.fileStats.tests.modified}`);
-    console.log(`  docs/      → Added: ${this.fileStats.docs.added}, Deleted: ${this.fileStats.docs.deleted}, Modified: ${this.fileStats.docs.modified}`);
-    console.log(`  other/     → Added: ${this.fileStats.other.added}, Deleted: ${this.fileStats.other.deleted}, Modified: ${this.fileStats.other.modified}\n`);
+    if (!changes || Object.keys(changes).length === 0) {
+      console.log('⏭️  No changes detected - no version bumps needed\n');
+      return null;
+    }
 
-    const newVersion = this.determineVersionBump(currentVersion);
-    
-    if (newVersion) {
-      console.log(`✅ Recommended Version Bump: ${currentVersion} → ${newVersion}`);
-      
-      if (currentVersion.split('.')[0] !== newVersion.split('.')[0]) {
-        console.log('   (Major version bump - Breaking changes detected)\n');
-      } else if (currentVersion.split('.')[1] !== newVersion.split('.')[1]) {
-        console.log('   (Minor version bump - New features added)\n');
-      } else {
-        console.log('   (Patch version bump - Bug fixes or code additions)\n');
+    // Apply dependency propagation
+    const propagated = this.propagateDependencies();
+
+    // Report workspace changes
+    console.log('📦 Workspace Version Bumps:');
+    Object.entries(propagated).forEach(([workspace, bumpType]) => {
+      if (bumpType !== 'none') {
+        const deps = this.dependencies[workspace] || [];
+        const depsStr = deps.length > 0 ? ` (depends on: ${deps.join(', ')})` : '';
+        console.log(`  • ${workspace}: ${bumpType.toUpperCase()}${depsStr}`);
       }
+    });
+    console.log('');
+
+    // Determine highest bump for root version
+    const bumpPriority = { major: 3, minor: 2, patch: 1, none: 0 };
+    let highestBump = 'none';
+
+    Object.values(propagated).forEach((bumpType) => {
+      if ((bumpPriority[bumpType] || 0) > (bumpPriority[highestBump] || 0)) {
+        highestBump = bumpType;
+      }
+    });
+
+    if (highestBump !== 'none') {
+      // Calculate new root version
+      const [major, minor, patch] = currentVersion.split('.').map(Number);
+      let newVersion;
+
+      if (highestBump === 'major') {
+        newVersion = `${major + 1}.0.0`;
+      } else if (highestBump === 'minor') {
+        newVersion = `${major}.${minor + 1}.0`;
+      } else if (highestBump === 'patch') {
+        newVersion = `${major}.${minor}.${patch + 1}`;
+      }
+
+      console.log(`✅ Root Version Bump: ${currentVersion} → ${newVersion}`);
+      console.log(`   Trigger: Highest workspace bump is ${highestBump.toUpperCase()}\n`);
+
+      // Suggest command for applying bumps
+      const rangeArg = this.lastTag || 'origin/main..HEAD';
+      console.log(`📌 To apply version bumps, run:`);
+      console.log(`   node scripts/sync-package-versions.js "${rangeArg}"\n`);
+
+      return newVersion;
     } else {
-      console.log('⏭️  No version bump needed (only docs/chore/test changes)\n');
+      console.log('⏭️  Root version bump not needed (only docs/chore changes)\n');
+      return null;
     }
-
-    // Detailed commit list
-    if (this.commits.length > 0) {
-      console.log('📋 Commit Details:');
-      this.commits.forEach((commit, idx) => {
-        const parsed = this.parseCommit(commit);
-        const icon = 
-          parsed.breaking ? '🚨' :
-          parsed.type === 'feat' ? '⭐' :
-          parsed.type === 'fix' ? '🔧' :
-          parsed.type === 'refactor' ? '♻️' :
-          parsed.type === 'docs' ? '📚' :
-          '❓';
-        
-        console.log(`  ${idx + 1}. ${icon} ${commit.subject.substring(0, 70)}`);
-      });
-    }
-
-    console.log('\n╔════════════════════════════════════════════════════════════╗');
-    console.log('║                    End of Report                           ║');
-    console.log('╚════════════════════════════════════════════════════════════╝\n');
-
-    return newVersion;
   }
 
   /**
    * Run full analysis
    */
   analyze(currentVersion) {
-    this.categorizeCommits();
-    this.analyzeFileChanges();
     return this.generateReport(currentVersion);
   }
 }

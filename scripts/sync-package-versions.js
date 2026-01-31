@@ -1,76 +1,139 @@
 #!/usr/bin/env node
 
 /**
- * Sync all package.json versions to root package.json version
+ * Workspace-Independent Version Synchronization
  *
- * This script ensures all submodule packages use the same version as the
- * main repository (monorepo generic versioning approach).
+ * This script uses the new workspace-independent versioning system to apply
+ * version updates. It detects changes across workspaces and bumps each
+ * workspace independently based on its own changes.
  *
- * Usage: node scripts/sync-package-versions.js [version]
- *   - With version arg: Set all packages to specified version
- *   - Without arg: Sync all packages to root version
+ * Dependencies are maintained:
+ *   - necrobot-utils (no dependencies)
+ *   - necrobot-core (depends on necrobot-utils)
+ *   - necrobot-commands (depends on necrobot-core and necrobot-utils)
+ *   - necrobot-dashboard (depends on necrobot-utils)
+ *
+ * Usage: node scripts/sync-package-versions.js <commit-range> [--force]
+ *   - commit-range: Git range to analyze (e.g., "origin/main..HEAD")
+ *   - --force: Force sync without confirmation (optional)
+ *
+ * REPLACED: Old behavior (syncing all packages to same version) is now replaced
+ * with workspace-independent versioning based on actual changes.
  */
 
-const fs = require('fs');
+const { execSync } = require('child_process');
 const path = require('path');
 
-const rootPackageJsonPath = path.join(__dirname, '..', 'package.json');
-const packages = ['repos/necrobot-utils', 'repos/necrobot-core', 'repos/necrobot-commands', 'repos/necrobot-dashboard'];
+const { detectWorkspaceChanges } = require('./detect-workspace-changes');
+const { updateWorkspaceVersions, updateRootVersion } = require('./bump-workspace-versions');
 
-function readJsonFile(filePath) {
-  const content = fs.readFileSync(filePath, 'utf-8');
-  return JSON.parse(content);
-}
-
-function writeJsonFile(filePath, data) {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n');
+function executeCommand(cmd, description) {
+  try {
+    return execSync(cmd, { encoding: 'utf-8' }).trim();
+  } catch (error) {
+    console.error(`❌ Failed to ${description}: ${error.message}`);
+    throw error;
+  }
 }
 
 function main() {
-  // Get target version
-  const targetVersion = process.argv[2];
+  const commitRange = process.argv[2];
+  const force = process.argv[3] === '--force';
 
-  // Read root package.json
-  const rootPackage = readJsonFile(rootPackageJsonPath);
-  const versionToUse = targetVersion || rootPackage.version;
+  if (!commitRange) {
+    console.error('❌ Usage: sync-package-versions.js <commit-range> [--force]');
+    console.error('   Example: sync-package-versions.js origin/main..HEAD');
+    process.exit(1);
+  }
 
-  console.log(`📦 Syncing all packages to version: ${versionToUse}\n`);
+  console.log('🔍 Workspace-Independent Version Synchronization');
+  console.log(`📋 Analyzing changes in: ${commitRange}\n`);
 
-  let synced = 0;
-  let changed = 0;
+  try {
+    // Step 1: Get git diff
+    const diffOutput = executeCommand(`git diff --name-status ${commitRange}`, 'get git diff');
 
-  // Sync each submodule package
-  packages.forEach((pkgPath) => {
-    const packageJsonPath = path.join(__dirname, '..', pkgPath, 'package.json');
+    // Step 2: Get commit messages
+    const logOutput = executeCommand(
+      `git log ${commitRange} --pretty=format:"%H%n%s%n%b%n---END---"`,
+      'get commit log'
+    );
+    const commits = [];
 
-    if (!fs.existsSync(packageJsonPath)) {
-      console.warn(`⚠️  Missing: ${pkgPath}/package.json`);
-      return;
+    if (logOutput) {
+      const commitBlocks = logOutput.split('---END---').filter((b) => b.trim());
+
+      for (const block of commitBlocks) {
+        const lines = block.trim().split('\n');
+        if (lines.length >= 2) {
+          const hash = lines[0];
+          const subject = lines[1];
+          const body = lines.slice(2).join('\n');
+          commits.push({
+            hash,
+            message: (subject + '\n' + body).trim(),
+          });
+        }
+      }
     }
 
-    const pkg = readJsonFile(packageJsonPath);
-    const oldVersion = pkg.version;
+    // Step 3: Detect workspace changes
+    const changes = detectWorkspaceChanges(diffOutput, commits);
 
-    if (oldVersion !== versionToUse) {
-      pkg.version = versionToUse;
-      writeJsonFile(packageJsonPath, pkg);
-      console.log(`✅ ${pkg.name}@${versionToUse} (was ${oldVersion})`);
-      changed++;
+    if (Object.keys(changes).length === 0) {
+      console.log('ℹ️  No changes detected. No version updates needed.');
+      process.exit(0);
+    }
+
+    console.log('📈 Detected version bumps:');
+    Object.entries(changes).forEach(([workspace, bump]) => {
+      if (bump !== 'none') {
+        console.log(`   • ${workspace}: ${bump.toUpperCase()}`);
+      }
+    });
+    console.log('');
+
+    // Step 4: Get workspaces from root package.json
+    const rootPackage = require(path.join(__dirname, '..', 'package.json'));
+    const workspaces = rootPackage.workspaces || [];
+
+    // Step 5: Apply version updates to workspaces
+    console.log('📝 Applying version updates...');
+    const wsResults = updateWorkspaceVersions(
+      changes,
+      workspaces.map((w) => w.replace('repos/', ''))
+    );
+
+    if (wsResults.failed.length === 0) {
+      console.log('✅ All workspace versions updated successfully\n');
+
+      // Step 6: Update root version
+      console.log('🔗 Updating root version...');
+      const rootResults = updateRootVersion(changes);
+
+      if (rootResults.success) {
+        console.log(`✅ Root version updated: ${rootResults.oldVersion} → ${rootResults.newVersion}\n`);
+      } else {
+        console.warn(`⚠️  Root version update failed: ${rootResults.reason}\n`);
+      }
+
+      // Summary
+      console.log('📊 Summary:');
+      console.log(`   Workspace updates: ${wsResults.updated.length} successful, ${wsResults.failed.length} failed`);
+      console.log(`   Root version: ${rootResults.oldVersion} → ${rootResults.newVersion}`);
+      console.log(`   Timestamp: ${rootResults.timestamp}\n`);
+      console.log('✅ Version synchronization complete!\n');
+      process.exit(0);
     } else {
-      console.log(`✓  ${pkg.name}@${versionToUse} (already synced)`);
+      console.error(`❌ ${wsResults.failed.length} workspace updates failed`);
+      wsResults.failed.forEach((f) => {
+        console.error(`   • ${f.workspace}: ${f.reason}`);
+      });
+      process.exit(1);
     }
-
-    synced++;
-  });
-
-  console.log(`\n📊 Summary: ${synced} packages checked, ${changed} updated`);
-
-  if (changed > 0) {
-    console.log('✅ All packages synced successfully!\n');
-    process.exit(0);
-  } else {
-    console.log('ℹ️  All packages already in sync.\n');
-    process.exit(0);
+  } catch (error) {
+    console.error(`❌ Version synchronization failed: ${error.message}`);
+    process.exit(1);
   }
 }
 
