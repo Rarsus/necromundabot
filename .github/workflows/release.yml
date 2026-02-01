@@ -107,6 +107,8 @@ jobs:
         run: |
           echo "📊 Running workspace-independent version analysis..."
           echo ""
+          echo "🔵 DEBUG: Analyzing commit range: ${{ steps.get-tag.outputs.range }}"
+          echo ""
           
           # Run analysis script that now uses workspace-independent detection
           # Add error handling to show script output if it fails
@@ -122,6 +124,12 @@ jobs:
           # Parse output (script outputs structured data we can extract)
           # Extract version bumps for each workspace
           ANALYSIS=$(cat analysis_output.txt)
+          
+          # DEBUG: Show raw analysis output
+          echo ""
+          echo "🔵 DEBUG: Raw analysis output:"
+          echo "$ANALYSIS"
+          echo ""
           
           # Initialize all bumps to none
           UTILS_BUMP="none"
@@ -139,6 +147,15 @@ jobs:
           DASHBOARD_BUMP=$(echo "$ANALYSIS" | grep "^necrobot-dashboard:" | awk '{print tolower($NF)}' || echo "none")
           ROOT_BUMP=$(echo "$ANALYSIS" | grep "^Root Version Bump:" | awk '{print tolower($NF)}' || echo "none")
           
+          # DEBUG: Show extracted bump types
+          echo "🔵 DEBUG: Extracted bump types:"
+          echo "  • UTILS_BUMP=$UTILS_BUMP (raw grep: $(echo "$ANALYSIS" | grep "^necrobot-utils:" || echo "NO MATCH"))"
+          echo "  • CORE_BUMP=$CORE_BUMP (raw grep: $(echo "$ANALYSIS" | grep "^necrobot-core:" || echo "NO MATCH"))"
+          echo "  • COMMANDS_BUMP=$COMMANDS_BUMP (raw grep: $(echo "$ANALYSIS" | grep "^necrobot-commands:" || echo "NO MATCH"))"
+          echo "  • DASHBOARD_BUMP=$DASHBOARD_BUMP (raw grep: $(echo "$ANALYSIS" | grep "^necrobot-dashboard:" || echo "NO MATCH"))"
+          echo "  • ROOT_BUMP=$ROOT_BUMP (raw grep: $(echo "$ANALYSIS" | grep "^Root Version Bump:" || echo "NO MATCH"))"
+          echo ""
+          
           # Check if there are any changes (any bump other than 'none')
           if [[ "$UTILS_BUMP" != "none" ]] || [[ "$CORE_BUMP" != "none" ]] || [[ "$COMMANDS_BUMP" != "none" ]] || [[ "$DASHBOARD_BUMP" != "none" ]]; then
             HAS_CHANGES="true"
@@ -153,11 +170,12 @@ jobs:
           echo "has-changes=${HAS_CHANGES}" >> $GITHUB_OUTPUT
           
           echo ""
-          echo "✅ Analysis complete:"
+          echo "✅ Analysis complete (DEBUG LOGGING ENABLED):"
           echo "  • necrobot-utils: $UTILS_BUMP"
           echo "  • necrobot-core: $CORE_BUMP"
           echo "  • necrobot-commands: $COMMANDS_BUMP"
           echo "  • necrobot-dashboard: $DASHBOARD_BUMP"
+          echo "  • Root version bump: $ROOT_BUMP"
           echo "  • Has changes: $HAS_CHANGES"
 
   # ════════════════════════════════════════════════════════════════════════════
@@ -203,6 +221,14 @@ jobs:
           fi
           
           echo "📝 Applying bumps for range: $COMMIT_RANGE"
+          echo ""
+          echo "🔵 DEBUG: Bumps being applied:"
+          echo "  • utils-bump: ${{ needs.analyze-workspace-changes.outputs.utils-bump }}"
+          echo "  • core-bump: ${{ needs.analyze-workspace-changes.outputs.core-bump }}"
+          echo "  • commands-bump: ${{ needs.analyze-workspace-changes.outputs.commands-bump }}"
+          echo "  • dashboard-bump: ${{ needs.analyze-workspace-changes.outputs.dashboard-bump }}"
+          echo "  • root-version: ${{ needs.analyze-workspace-changes.outputs.root-version }}"
+          echo ""
           
           # Use sync-package-versions to apply workspace-independent bumps
           node scripts/sync-package-versions.js "$COMMIT_RANGE"
@@ -210,6 +236,11 @@ jobs:
           # Get new version
           NEW_VERSION=$(jq -r '.version' package.json)
           echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo ""
+          echo "🔵 DEBUG: Version application complete"
+          echo "  • Old version: $LATEST_TAG"
+          echo "  • New version: v${NEW_VERSION}"
+          echo ""
           echo "✅ Versions bumped to v${NEW_VERSION}"
 
       - name: ✅ Verify version updates
