@@ -31,13 +31,9 @@ describe('Create Release Script', () => {
         'Submodule and main repo should have different package names'
       );
 
-      // In current synchronized monorepo, versions are the same across all workspaces
-      // This is intentional and validates the version synchronization strategy
-      assert.strictEqual(
-        submodulePackageJson.version,
-        mainPackageJson.version,
-        'Submodule and main repo should have synchronized versions in monorepo'
-      );
+      // Each package has independent versioning - no synchronization requirement
+      assert.ok(submodulePackageJson.version, 'Submodule should have a version');
+      assert.ok(mainPackageJson.version, 'Main repo should have a version');
     });
 
     it('should correctly detect submodule directory with package.json', () => {
@@ -57,7 +53,6 @@ describe('Create Release Script', () => {
       assert.ok(stats.mode & fs.constants.S_IXUSR, 'create-release.sh should be executable');
     });
   });
-
   describe('Package.json Detection', () => {
     it('should read package.json from local directory when executed from submodule', () => {
       // Execute script with bash -x to see which package.json it reads
@@ -107,14 +102,8 @@ describe('Create Release Script', () => {
 
       assert.ok(packageJson.version, 'Package should have a version');
 
-      // In synchronized monorepo, all workspaces should have the same version
-      const mainPackageJson = JSON.parse(fs.readFileSync(path.resolve(mainRepoDir, 'package.json'), 'utf-8'));
-
-      assert.strictEqual(
-        packageJson.version,
-        mainPackageJson.version,
-        'Versions should be synchronized between main repo and all workspaces'
-      );
+      // Each package can have independent versioning
+      assert.ok(packageJson.version.length > 0, 'Version should be a non-empty string');
     });
 
     it('should detect correct git repo root for version analysis', () => {
