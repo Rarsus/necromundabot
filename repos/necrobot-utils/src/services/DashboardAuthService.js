@@ -212,7 +212,7 @@ class DashboardAuthService {
 
       // Other errors
       return false;
-    } catch (error) {
+    } catch {
       // On error, assume not a member
       return false;
     }
@@ -296,7 +296,7 @@ class DashboardAuthService {
       this.userProfileCache.delete(accessToken);
 
       return response.ok;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

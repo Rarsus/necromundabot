@@ -4,6 +4,7 @@
  */
 
 const assert = require('assert');
+
 const DashboardAuthService = require('../../src/services/DashboardAuthService');
 
 describe('DashboardAuthService', () => {
@@ -26,10 +27,28 @@ describe('DashboardAuthService', () => {
       assert.strictEqual(authService.botToken, mockBotToken);
     });
 
-    it('should throw error if required credentials are missing', () => {
+    it('should throw error if client ID is missing', () => {
       assert.throws(() => {
         new DashboardAuthService(null, mockClientSecret, mockGuildId, mockBotToken);
       }, /Client ID is required/);
+    });
+
+    it('should throw error if client secret is missing', () => {
+      assert.throws(() => {
+        new DashboardAuthService(mockClientId, null, mockGuildId, mockBotToken);
+      }, /Client Secret is required/);
+    });
+
+    it('should throw error if guild ID is missing', () => {
+      assert.throws(() => {
+        new DashboardAuthService(mockClientId, mockClientSecret, null, mockBotToken);
+      }, /Guild ID is required/);
+    });
+
+    it('should throw error if bot token is missing', () => {
+      assert.throws(() => {
+        new DashboardAuthService(mockClientId, mockClientSecret, mockGuildId, null);
+      }, /Bot Token is required/);
     });
   });
 
