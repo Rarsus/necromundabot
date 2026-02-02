@@ -145,8 +145,8 @@ jobs:
           CORE_BUMP=$(echo "$ANALYSIS" | grep "^necrobot-core:" | awk '{print tolower($NF)}' || echo "none")
           COMMANDS_BUMP=$(echo "$ANALYSIS" | grep "^necrobot-commands:" | awk '{print tolower($NF)}' || echo "none")
           DASHBOARD_BUMP=$(echo "$ANALYSIS" | grep "^necrobot-dashboard:" | awk '{print tolower($NF)}' || echo "none")
-          # Extract root bump from "Trigger: Highest workspace bump is MAJOR/MINOR/PATCH" line
-          ROOT_BUMP=$(echo "$ANALYSIS" | grep "Trigger: Highest workspace bump is" | sed -n 's/.*is \([A-Z]*\).*/\1/p' | tr 'A-Z' 'a-z' || echo "none")
+          # Extract root bump from "ROOT: MAJOR/MINOR/PATCH" line in the output
+          ROOT_BUMP=$(echo "$ANALYSIS" | grep "^  • ROOT:" | sed -n 's/.*ROOT: \([A-Z]*\).*/\1/p' | tr 'A-Z' 'a-z' || echo "none")
           
           # DEBUG: Show extracted bump types
           echo "🔵 DEBUG: Extracted bump types:"
@@ -154,11 +154,11 @@ jobs:
           echo "  • CORE_BUMP=$CORE_BUMP (raw grep: $(echo "$ANALYSIS" | grep "^necrobot-core:" || echo "NO MATCH"))"
           echo "  • COMMANDS_BUMP=$COMMANDS_BUMP (raw grep: $(echo "$ANALYSIS" | grep "^necrobot-commands:" || echo "NO MATCH"))"
           echo "  • DASHBOARD_BUMP=$DASHBOARD_BUMP (raw grep: $(echo "$ANALYSIS" | grep "^necrobot-dashboard:" || echo "NO MATCH"))"
-          echo "  • ROOT_BUMP=$ROOT_BUMP (raw grep: $(echo "$ANALYSIS" | grep "^Root Version Bump:" || echo "NO MATCH"))"
+          echo "  • ROOT_BUMP=$ROOT_BUMP (raw grep: $(echo "$ANALYSIS" | grep "^  • ROOT:" || echo "NO MATCH"))"
           echo ""
           
-          # Check if there are any changes (any bump other than 'none')
-          if [[ "$UTILS_BUMP" != "none" ]] || [[ "$CORE_BUMP" != "none" ]] || [[ "$COMMANDS_BUMP" != "none" ]] || [[ "$DASHBOARD_BUMP" != "none" ]]; then
+          # Check if there are any changes (any bump other than 'none', including ROOT changes)
+          if [[ "$UTILS_BUMP" != "none" ]] || [[ "$CORE_BUMP" != "none" ]] || [[ "$COMMANDS_BUMP" != "none" ]] || [[ "$DASHBOARD_BUMP" != "none" ]] || [[ "$ROOT_BUMP" != "none" ]]; then
             HAS_CHANGES="true"
           fi
           
