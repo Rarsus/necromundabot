@@ -264,11 +264,40 @@ jobs:
           # Push directly (won't trigger another release workflow because of when conditions)
           git push origin ${{ github.ref_name }} || echo "⚠️ Push failed (might already be up to date)"
 
-      - name: 🏷️ Create git tag
+      - name: 🏷️ Create Release Tags (All Workspaces + Root)
         run: |
-          VERSION=${{ steps.bump.outputs.version }}
-          git tag "v${VERSION}" || echo "⚠️ Tag already exists"
-          git push origin "v${VERSION}" || true
+          # Get versions from all packages
+          ROOT_VERSION=$(jq -r '.version' package.json)
+          UTILS_VERSION=$(jq -r '.version' repos/necrobot-utils/package.json)
+          CORE_VERSION=$(jq -r '.version' repos/necrobot-core/package.json)
+          COMMANDS_VERSION=$(jq -r '.version' repos/necrobot-commands/package.json)
+          DASHBOARD_VERSION=$(jq -r '.version' repos/necrobot-dashboard/package.json)
+          
+          echo "📝 Creating release tags..."
+          echo "  Workspace tags:"
+          echo "    • v${UTILS_VERSION}-utils"
+          echo "    • v${CORE_VERSION}-core"
+          echo "    • v${COMMANDS_VERSION}-commands"
+          echo "    • v${DASHBOARD_VERSION}-dashboard"
+          echo "  Root tag:"
+          echo "    • v${ROOT_VERSION}"
+          
+          # Create workspace tags (workspace-specific versions)
+          git tag "v${UTILS_VERSION}-utils" || echo "⚠️ Utils tag already exists"
+          git tag "v${CORE_VERSION}-core" || echo "⚠️ Core tag already exists"
+          git tag "v${COMMANDS_VERSION}-commands" || echo "⚠️ Commands tag already exists"
+          git tag "v${DASHBOARD_VERSION}-dashboard" || echo "⚠️ Dashboard tag already exists"
+          
+          # Create root tag (root version)
+          git tag "v${ROOT_VERSION}" || echo "⚠️ Root tag already exists"
+          
+          echo ""
+          echo "✅ Tags created. Pushing to GitHub..."
+          
+          # Push all tags to GitHub
+          git push origin --tags || echo "⚠️ Some tags may already exist on remote"
+          
+          echo "✅ Release tags pushed successfully"
 
   # ════════════════════════════════════════════════════════════════════════════
   # PARALLEL PHASE 4: Publishing & Docker Builds (3 parallel jobs)
