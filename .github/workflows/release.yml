@@ -145,7 +145,8 @@ jobs:
           CORE_BUMP=$(echo "$ANALYSIS" | grep "^necrobot-core:" | awk '{print tolower($NF)}' || echo "none")
           COMMANDS_BUMP=$(echo "$ANALYSIS" | grep "^necrobot-commands:" | awk '{print tolower($NF)}' || echo "none")
           DASHBOARD_BUMP=$(echo "$ANALYSIS" | grep "^necrobot-dashboard:" | awk '{print tolower($NF)}' || echo "none")
-          ROOT_BUMP=$(echo "$ANALYSIS" | grep "Root Version Bump:" | sed -n 's/.*Highest workspace bump is \([A-Z]*\).*/\1/p' | tr 'A-Z' 'a-z' || echo "none")
+          # Extract root bump from "Trigger: Highest workspace bump is MAJOR/MINOR/PATCH" line
+          ROOT_BUMP=$(echo "$ANALYSIS" | grep "Trigger: Highest workspace bump is" | sed -n 's/.*is \([A-Z]*\).*/\1/p' | tr 'A-Z' 'a-z' || echo "none")
           
           # DEBUG: Show extracted bump types
           echo "🔵 DEBUG: Extracted bump types:"
