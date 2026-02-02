@@ -72,6 +72,15 @@
 - [Using Copilot Instructions](./guides/using-copilot-instructions.md) - Guide to project-specific Copilot patterns
 - [Copilot Reference](./reference/copilot-reference.md) - Complete reference for Copilot commands and patterns
 
+### API Reference
+
+- [DashboardAuthService](./reference/dashboard-auth-service.md) - Discord OAuth authentication service API documentation
+  - OAuth 2.0 authorization flow
+  - Token management (exchange, refresh, validation)
+  - User profile retrieval
+  - Guild membership verification
+  - Comprehensive examples and security considerations
+
 ### Best Practices
 
 - [Best Practices Directory](./best-practices/) - General project best practices
