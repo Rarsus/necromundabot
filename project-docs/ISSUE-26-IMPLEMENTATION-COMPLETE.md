@@ -209,6 +209,29 @@ fix(versioning): Simplify and verify ROOT change propagation logic
 - Test suite: 8 comprehensive tests
 ```
 
+### Commit ba5137a: ROOT Bump Extraction Hotfix (February 2, 2026)
+
+```
+fix(release-workflow): Fix ROOT bump extraction and HAS_CHANGES logic
+
+Problems Fixed:
+1. ROOT_BUMP grep pattern was looking for '^Root Version Bump:' but
+   actual script output is '  • ROOT: MINOR'
+   - Fixed grep pattern to: '^  • ROOT:'
+   - Debug output now shows correct grep target
+
+2. HAS_CHANGES was not checking ROOT_BUMP
+   - ROOT-only changes would not trigger workflow
+   - Added ROOT_BUMP check to HAS_CHANGES condition
+   - ROOT-level changes now properly trigger release pipeline
+
+Impact:
+- ROOT-only changes (docs, config) now trigger full release workflow
+- Git tags created correctly for root version
+- Release pipeline executes end-to-end for root changes
+- All 131 existing tests still pass (no regressions)
+```
+
 ---
 
 ## Workflow Verification
@@ -330,24 +353,25 @@ When a commit with root-level changes is pushed:
 
 | Metric                  | Value                     |
 | ----------------------- | ------------------------- |
-| **Commits**             | 3 (all on origin/main)    |
-| **Files Modified**      | 3                         |
+| **Commits**             | 4 (all on origin/main)    |
+| **Files Modified**      | 4                         |
 | **Files Created**       | 3 (test suites)           |
 | **New Tests**           | 23 (all passing)          |
 | **Test Pass Rate**      | 100% (154/154 total)      |
 | **Regression Issues**   | 0                         |
 | **Code Review**         | Pre-commit hooks enforced |
-| **Implementation Time** | ~2 hours (session 3)      |
+| **Implementation Time** | ~2.5 hours total          |
 
 ---
 
 ## Conclusion
 
-All three priorities for issue #26 have been successfully completed:
+All three priorities for issue #26 have been successfully completed with one critical hotfix:
 
 ✅ **Priority 1:** ROOT-level change detection now works correctly  
 ✅ **Priority 2:** Git tags created for all workspaces and root  
-✅ **Priority 3:** ROOT change propagation logic is clean and reliable
+✅ **Priority 3:** ROOT change propagation logic is clean and reliable  
+🔧 **Hotfix:** ROOT bump extraction and HAS_CHANGES logic fixed
 
 The versioning system is now fully functional with comprehensive test coverage and is ready for production use. All code follows Conventional Commits format and passes pre-commit validation.
 
