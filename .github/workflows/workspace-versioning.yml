@@ -203,6 +203,15 @@ jobs:
           echo "  Commands: $(jq -r '.version' repos/necrobot-commands/package.json)"
           echo "  Dashboard: $(jq -r '.version' repos/necrobot-dashboard/package.json)"
 
+      - name: 🏷️ Create git tags for workspaces
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          echo "Creating workspace version tags..."
+          npm run version:tag:push
+          echo "✅ Workspace tags created and pushed"
+
       - name: 📝 Commit version changes
         run: |
           git config user.name "github-actions[bot]"

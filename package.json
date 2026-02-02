@@ -46,6 +46,8 @@
     "workspaces:validate": "node scripts/validate-workspaces.js",
     "version:sync": "node scripts/sync-package-versions.js",
     "version:sync:set": "node scripts/sync-package-versions.js",
+    "version:tag": "node scripts/tag-workspace-versions.js",
+    "version:tag:push": "node scripts/tag-workspace-versions.js --push",
     "analyze:version": "node scripts/analyze-version-impact.js",
     "verify:packages": "node scripts/verify-package-versions.js",
     "sync:vulnerabilities": "node scripts/sync-vulnerability-baseline.js",
