@@ -211,11 +211,19 @@ class VersionImpactAnalyzer {
       console.log(`${workspace}: ${bumpType.toUpperCase()}`);
     });
 
+    // FIX #26: Include ROOT changes in workspace output if they exist
+    if (propagated['ROOT'] !== undefined && propagated['ROOT'] !== 'none') {
+      const rootBump = propagated['ROOT'];
+      console.log(`ROOT: ${rootBump.toUpperCase()}`);
+    }
+
     // Determine highest bump for root version
+    // FIX #26: Include ROOT in bump priority calculation
     const bumpPriority = { major: 3, minor: 2, patch: 1, none: 0 };
     let highestBump = 'none';
 
-    Object.values(propagated).forEach((bumpType) => {
+    Object.keys(propagated).forEach((workspace) => {
+      const bumpType = propagated[workspace];
       if ((bumpPriority[bumpType] || 0) > (bumpPriority[highestBump] || 0)) {
         highestBump = bumpType;
       }
