@@ -1,6 +1,6 @@
 {
   "name": "necromundabot",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "NecromundaBot - Unified monorepo containing core bot, utilities, commands, and dashboard",
   "private": true,
   "publishConfig": {
