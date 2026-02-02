@@ -3,6 +3,9 @@
  * Handles OAuth 2.0 authorization code flow, token management, and guild verification
  */
 
+// Discord API version constant - update when Discord releases new versions
+const DISCORD_API_VERSION = 'v10';
+
 class DashboardAuthService {
   /**
    * Initialize DashboardAuthService with Discord credentials
@@ -10,8 +13,9 @@ class DashboardAuthService {
    * @param {string} clientSecret - Discord application client secret
    * @param {string} guildId - Discord guild ID for membership verification
    * @param {string} botToken - Discord bot token for API calls
+   * @param {string} [apiVersion='v10'] - Discord API version (optional)
    */
-  constructor(clientId, clientSecret, guildId, botToken) {
+  constructor(clientId, clientSecret, guildId, botToken, apiVersion = DISCORD_API_VERSION) {
     if (!clientId) {
       throw new Error('Client ID is required');
     }
@@ -29,7 +33,7 @@ class DashboardAuthService {
     this.clientSecret = clientSecret;
     this.guildId = guildId;
     this.botToken = botToken;
-    this.baseUrl = 'https://discord.com/api/v10';
+    this.baseUrl = `https://discord.com/api/${apiVersion}`;
     this.userProfileCache = new Map();
 
     // Use native fetch (available in Node.js 18+)
@@ -213,7 +217,9 @@ class DashboardAuthService {
       // Other errors
       return false;
     } catch {
-      // On error, assume not a member
+      // Intentionally suppress errors and return false for non-members
+      // This handles network errors, API errors, or permission issues gracefully
+      // Non-member status is the safe default when membership cannot be verified
       return false;
     }
   }
@@ -297,6 +303,9 @@ class DashboardAuthService {
 
       return response.ok;
     } catch {
+      // Intentionally suppress revocation errors and return false
+      // This handles network errors or API issues gracefully
+      // Token may already be invalid/expired, which is acceptable for logout
       return false;
     }
   }
