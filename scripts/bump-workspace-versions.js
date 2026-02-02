@@ -150,28 +150,18 @@ function updateRootVersion(changes) {
     const rootPkg = readPackageJson(rootPkgPath);
     const oldVersion = rootPkg.version;
 
-    // Determine the highest bump type from all workspaces
+    // Determine the highest bump type from all workspaces (including ROOT)
+    // ROOT changes are given the same priority as workspace changes
+    // The highest semantic version bump takes precedence
+    const bumpPriority = { major: 3, minor: 2, patch: 1, none: 0 };
     let highestBump = 'none';
+    let highestPriority = 0;
 
     for (const [workspace, bumpType] of Object.entries(changes)) {
-      if (workspace === 'ROOT') {
-        // ROOT changes are already accounted for
-        if (bumpType === 'major') {
-          highestBump = 'major';
-        } else if (bumpType === 'minor' && highestBump !== 'major') {
-          highestBump = 'minor';
-        } else if (bumpType === 'patch' && highestBump === 'none') {
-          highestBump = 'patch';
-        }
-      } else {
-        // Regular workspace changes
-        if (bumpType === 'major') {
-          highestBump = 'major';
-        } else if (bumpType === 'minor' && highestBump !== 'major') {
-          highestBump = 'minor';
-        } else if (bumpType === 'patch' && highestBump === 'none') {
-          highestBump = 'patch';
-        }
+      const priority = bumpPriority[bumpType] || 0;
+      if (priority > highestPriority) {
+        highestBump = bumpType;
+        highestPriority = priority;
       }
     }
 
