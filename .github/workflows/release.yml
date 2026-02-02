@@ -264,6 +264,12 @@ jobs:
           # Push directly (won't trigger another release workflow because of when conditions)
           git push origin ${{ github.ref_name }} || echo "⚠️ Push failed (might already be up to date)"
 
+      - name: ✅ Validate all tags against SemVer strategy
+        run: |
+          echo "🔍 Validating release tags against SemVer strategy..."
+          npm run validate:tags:strict
+          echo "✅ All tags validated successfully"
+
       - name: 🏷️ Create Release Tags (All Workspaces + Root)
         run: |
           # Get versions from all packages
@@ -298,6 +304,12 @@ jobs:
           git push origin --tags || echo "⚠️ Some tags may already exist on remote"
           
           echo "✅ Release tags pushed successfully"
+
+      - name: ✅ Verify all tags created successfully
+        run: |
+          echo "🔍 Verifying release tags..."
+          npm run validate:tags:check
+          echo "✅ Tag verification complete"
 
   # ════════════════════════════════════════════════════════════════════════════
   # PARALLEL PHASE 4: Publishing & Docker Builds (3 parallel jobs)

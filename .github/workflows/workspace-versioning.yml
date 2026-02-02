@@ -203,6 +203,12 @@ jobs:
           echo "  Commands: $(jq -r '.version' repos/necrobot-commands/package.json)"
           echo "  Dashboard: $(jq -r '.version' repos/necrobot-dashboard/package.json)"
 
+      - name: ✅ Validate tags against SemVer strategy
+        run: |
+          echo "🔍 Validating workspace tags against SemVer strategy..."
+          npm run validate:tags:strict
+          echo "✅ All tags validated successfully"
+
       - name: 🏷️ Create git tags for workspaces
         run: |
           git config user.name "github-actions[bot]"
@@ -211,6 +217,12 @@ jobs:
           echo "Creating workspace version tags..."
           npm run version:tag:push
           echo "✅ Workspace tags created and pushed"
+      
+      - name: ✅ Verify all tags created successfully
+        run: |
+          echo "🔍 Verifying tags..."
+          npm run validate:tags:check
+          echo "✅ Tag verification complete"
 
       - name: 📝 Commit version changes
         run: |
